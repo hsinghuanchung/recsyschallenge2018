@@ -9,7 +9,7 @@ int main(int argc,char *argv[])
 	mapping dict(argv[1],argv[2],atoi(argv[3]));
 	
 	printf("test\n");
-	dict.find();
+	dict.goal();
 	
 
 }

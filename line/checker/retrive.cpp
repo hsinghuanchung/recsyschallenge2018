@@ -74,29 +74,55 @@ string mapping::query_url(int index)
 {
 	return this->re[index];
 }
-
-void mapping::find()
+void mapping::goal()
 {
-	priority_queue< temp > tt;
+	int rc;
+	int ss=arr.size()/this->thread_num;
+	pthread_t thread[this->thread_num];
+	pair<mapping*,int> parm[this->thread_num];
+	void *res;
+
+	for(int i=0;i<this->thread_num;i++)
+	{
+		this->pt[i].first = i*ss;
+		this->pt[i].second =(i+1)*ss;
+
+		if( i == (this->thread_num-1))
+			this->pt[i].second = arr.size();
+
+		thread[i] = i;
+
+		parm[i].first = this;
+		parm[i].second = i;
+
+		rc = pthread_create(&thread[i],NULL,mapping::find,(void*)&parm[i]);
+	}
+	for(int i=0;i<this->thread_num;i++)
+		rc = pthread_join(thread[i],&res);
+}
+void* mapping::find(void *parm)
+{
+	pair<mapping*,int> *temp = (pair<mapping*,int>*) parm;
+	priority_queue< temp_prior > tt;
 	
 	double qq;
-	temp h; 
-
+	temp_prior h; 
+	int i,j,ss;
 	char file[128]="ans";
-	sprintf(file,"ans_%d.out",this->size);
+	sprintf(file,"ans_%d_[%d_%d].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
 
 	ofstream ofs(file);
 
-	for(int i=0 ; i<arr.size() ; i++)
+	for(i=temp->first->pt[temp->second].first ; i<temp->first->pt[temp->second].second ; i++)
 	{
-		for(int j=0 ; j<arr.size() ; j++)
+		for( j=0,ss = temp->first->arr.size() ; j<ss ; j++)
 		{
 			if(i == j)
 				continue;
 			qq = 0;
 
-			for(int k=0 ; k< this->size ; k++)
-				qq += (arr[i][k]-arr[j][k]) * (arr[i][k]-arr[j][k]);
+			for(int k=0 ; k< temp->first->size ; k++)
+				qq += (temp->first->arr[i][k] - temp->first->arr[j][k]) * (temp->first->arr[i][k] - temp->first->arr[j][k]);
 			h.value = sqrt(qq);
 			h.node = j;
 			
@@ -105,7 +131,7 @@ void mapping::find()
 				tt.pop();
 
 		}
-		for(int j=0 ; j<40 ; j++)
+		for( j=0 ; j<40 ; j++)
 		{
 			h = tt.top();
 			tt.pop();
