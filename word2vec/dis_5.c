@@ -19,7 +19,7 @@ const long long N = 500;//500             // number of closest words that will b
 const long long max_w = 50;              // max length of vocabulary entries
 const long long i_num = 5;
 
-/*
+
 //////This is used in my own way of calculating the weight of five distance//////
 struct average{
   char aword[50];
@@ -36,7 +36,7 @@ int cmpfunc(const void *data1, const void *data2){
     return 1;
   else
     return 0;
-}*/
+}
 
 
 int main(int argc, char **argv) {
