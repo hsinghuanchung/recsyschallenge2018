@@ -39,51 +39,51 @@ int main(int argc, char **argv) {
   	float total_RP = 0.0, max_RP = 0.0, acc_one = 0.0;
   	double total_NDCG = 0.0, max_NDCG = 0.0;
   	while (playlist_num < playlist_total) {
-  		//initialize
-    	for (a = 0; a < N; a++) strcpy(truthw[a], " ");
-    	for (a = 0; a < N; a++) strcpy(testw[a], " ");
+		//initialize
+		for (a = 0; a < N; a++) strcpy(truthw[a], " ");
+		for (a = 0; a < N; a++) strcpy(testw[a], " ");
     
-  		//progress one playlist in f_truth
-    	//fscanf(f_truth, "%s", pid);
-  		fscanf(f_truth, "%s", snum);
-	   	track_num = atoi(snum);
-	   	cnt = 0;
-	   	while(cnt < track_num){
-	   		fscanf(f_truth, "%s", truthw[cnt]);
-	   		cnt++;
-	   	}
+		//progress one playlist in f_truth
+		//fscanf(f_truth, "%s", pid);
+		fscanf(f_truth, "%s", snum);
+		track_num = atoi(snum);
+		cnt = 0;
+		while(cnt < track_num){
+			fscanf(f_truth, "%s", truthw[cnt]);
+			cnt++;
+		}
 	    
-	    //progress one playlist in f_test
-    	cnt = 0;
-	   	while(cnt < R_size){
-	   		fscanf(f_test, "%s", testw[cnt]);
-	   		cnt++;
-	   	}
+		//progress one playlist in f_test
+		cnt = 0;
+		while(cnt < R_size){
+			fscanf(f_test, "%s", testw[cnt]);
+			cnt++;
+		}
 
 		if(track_num <= 5){
 			playlist_num++;
-	    	continue;
-	    }
+			continue;
+		}
 
-	    ///////////Metrics 1: calculate R-precision
-  		float sum = 0;
-	  	for(i = 5; i < track_num; i++){
-	  		for(j = 0; j < track_num; j++){
-	  			if(strcmp(testw[j], truthw[i]) == 0){
-	  				sum++;
-	  				break;
-	  			}
-	  		}
-	  	}
-	  	acc_one = (sum / (track_num - 5));
-	  	//cumulative total RP
+		///////////Metrics 1: calculate R-precision
+		float sum = 0;
+		for(i = 5; i < track_num; i++){
+			for(j = 0; j < track_num; j++){
+				if(strcmp(testw[j], truthw[i]) == 0){
+					sum++;
+					break;
+				}
+			}
+		}
+		acc_one = (sum / (track_num - 5));
+		//cumulative total RP
 		total_RP += acc_one;
-  		if(acc_one > max_RP)
-  			max_RP = acc_one;
-  		if(acc_one == 0.0)
-  			zero_RP_cnt++;
-	  	//print RP result for one playlist
-  		//printf("Playlist: %d\n==R-precision: %f\n", playlist_num, acc_one);		
+		if(acc_one > max_RP)
+			max_RP = acc_one;
+		if(acc_one == 0.0)
+			zero_RP_cnt++;
+		//print RP result for one playlist
+		//printf("Playlist: %d\n==R-precision: %f\n", playlist_num, acc_one);		
   		
 
 		///////////Metrics 2: calculate NDCG
