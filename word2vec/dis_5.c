@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
   */
 
   //printf("next_cnt: %d\n", next_cnt);
-  printf("finish, gc:%d\n", gc);
+  //printf("finish, gc:%d\n", gc);
 
   fclose(f_test);
   fclose(f_for_acc);
