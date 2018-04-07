@@ -18,6 +18,9 @@ gcc acc_one.c -o acc_one
 #include <math.h>
 #include <stdlib.h>
 
+
+const long long N = 510;
+
 int main(int argc, char **argv) {
 	FILE *f_truth;
 	FILE *f_test;
@@ -41,20 +44,20 @@ int main(int argc, char **argv) {
     	for (a = 0; a < N; a++) strcpy(testw[a], " ");
     
   		//progress one playlist in f_truth
-    	fscanf(f_truth, "%s", pid);
+    	//fscanf(f_truth, "%s", pid);
   		fscanf(f_truth, "%s", snum);
 	   	track_num = atoi(snum);
 	   	cnt = 0;
 	   	while(cnt < track_num){
-	   		if(fscanf(f_truth, "%s", truthw[cnt]) != EOF)
-	   			cnt++;
+	   		fscanf(f_truth, "%s", truthw[cnt]);
+	   		cnt++;
 	   	}
 	    
 	    //progress one playlist in f_test
     	cnt = 0;
 	   	while(cnt < R_size){
-	   		if(fscanf(f_test, "%s", testw[cnt]) != EOF)
-	   			cnt++;
+	   		fscanf(f_test, "%s", testw[cnt]);
+	   		cnt++;
 	   	}
 
 		if(track_num <= 5){
@@ -82,7 +85,6 @@ int main(int argc, char **argv) {
 	  	//print RP result for one playlist
   		//printf("Playlist: %d\n==R-precision: %f\n", playlist_num, acc_one);		
   		
-
 
 		///////////Metrics 2: calculate NDCG
 		double DCG = 0.0, IDCG = 1.0, NDCG = 0.0;
@@ -131,10 +133,10 @@ int main(int argc, char **argv) {
   		if(NDCG > max_NDCG)
   			max_NDCG = NDCG;
 	  	//print NDCG result for one playlist
-	  	/*printf("==DCG: %f, IDCG: %f\n", DCG, IDCG);
-	  	printf("==NDCG: %f\n", NDCG);
-	  	printf("==match num: %d\n", match_GR);
-	  	printf("--------------------------------------\n"); */
+	  	//printf("==DCG: %f, IDCG: %f\n", DCG, IDCG);
+	  	//printf("==NDCG: %f\n", NDCG);
+	  	//printf("==match num: %d\n", match_GR);
+	  	//printf("--------------------------------------\n"); 
 
   		playlist_num++;
 	} 	

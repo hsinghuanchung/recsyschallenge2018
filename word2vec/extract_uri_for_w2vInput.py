@@ -1,41 +1,48 @@
-
 """
 
     Usage:
-        python extract_uri_for_five_input.py [output file name]                             [range]
-        python extract_uri_for_five_input.py ../../word2vec/trunk/five_input_800000_1000000 800000-1000000
         
+        python extract_uri_for_w2vInput.py [output file name] [range]
+        python extract_uri_for_w2vInput.py train_uri_0_800000 0-800000
 
 """
-
 
 import sys
 import json
 import codecs
 import datetime
+import re
 
-name_url = set()
 cache = {}
 output_file_name = []
 
-gc = 0#gc just for debug
+def normalize_name(name):
+    name = name.lower()
+    name = re.sub(r"[.,\/#!$%\^\*;:{}=\_`~()@]", ' ', name)
+    name = re.sub(r'\s+', ' ', name).strip()
+    return name
 
 def get_playlist_name_url(playlist):
     ff = codecs.open(output_file_name,'a','utf-8') 
 
-    global gc
-    #print str(playlist['pid'])
+    #lower_name = playlist['name'].lower()
+    nname = normalize_name(playlist['name'])
+    ff.write(nname)
+    ff.write(" ")
 
     a = 0
     for track in playlist['tracks']:
-        if a == 5:
-            break
         tmp_uri = track['track_uri'].split(':')
+        a = a + 1
+        if a == 3:
+            ff.write(nname)
+            ff.write(" ")
+            a = 1
         ff.write(tmp_uri[2])
         ff.write(" ")
-        gc = gc + 1
-        a = a + 1
-        
+
+    ff.write(nname)
+    ff.write(" ")
     ff.close()
    
 
@@ -44,8 +51,8 @@ def show_playlist(pid):
         low = 1000 * int(pid / 1000)
         high = low + 999
         offset = pid - low
-        #path = "../../../../mnt/data/recsys_spotify/data/mpd.slice." + str(low) + '-' + str(high) + ".json"
-        path = "../data/mpd.slice." + str(low) + '-' + str(high) + ".json"
+        path = "../../../../mnt/data/recsys_spotify/data/mpd.slice." + str(low) + '-' + str(high) + ".json"
+        #path = "../data/mpd.slice." + str(low) + '-' + str(high) + ".json"
         if not path in cache:
             f = codecs.open(path, 'r', 'utf-8')
             js = f.read()
@@ -63,13 +70,6 @@ def show_playlists_in_range(start, end):
         if istart <= iend and istart >= 0 and iend <= 1000000:
             for pid in xrange(istart, iend):
                 show_playlist(pid)
-                ff = codecs.open(output_file_name,'a','utf-8')
-                """if pid == (iend - 1):
-                    ff.write("ENDFILE")
-                else:
-                    ff.write("NEXT ")
-                ff.close()"""
-
     except:
         raise
         print "bad pid"
@@ -82,12 +82,5 @@ if __name__ == '__main__':
         start = fields[0]
         end = fields[1]
         show_playlists_in_range(start, end)
-    
-    """print "======="
-    print gc
-    print start
-    print end """     
+        
     print "finish"
-
-
-
