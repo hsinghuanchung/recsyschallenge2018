@@ -20,8 +20,8 @@ output_file_name = []
 
 def get_playlist_name_url(playlist):
     ff = codecs.open(output_file_name,'a','utf-8') 
-    ff.write(str(playlist['pid']))
-    ff.write(" ")
+    #ff.write(str(playlist['pid']))
+    #ff.write(" ")
     ff.write(str(playlist['num_tracks']));
     ff.write(" ")
     
@@ -59,11 +59,11 @@ def show_playlists_in_range(start, end):
             for pid in xrange(istart, iend):
                 show_playlist(pid)
                 ff = codecs.open(output_file_name,'a','utf-8')
-                if pid == (iend - 1):
+                """if pid == (iend - 1):
                     ff.write("ENDFILE")
                 else:
                     ff.write("NEXT ")
-                ff.close()
+                ff.close()"""
 
     except:
         raise

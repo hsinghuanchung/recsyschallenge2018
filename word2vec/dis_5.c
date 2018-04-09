@@ -2,8 +2,9 @@
 
 gcc dis_5.c -o dis_5
 
-./dis_5 vectors.bin [input file name]         [output file name]
-./dis_5 vectors.bin five_input_800000_1000000 dis5_ans_800000_1000000
+./dis_5 vectors.bin [input file name]        [output file name]    [playlist num]   
+./dis_5 vectors.bin five_input_800000_800002 dis5_ans_800000_800002 2
+./dis_5 vectors2.bin five_input_800000_804000 dis5_ans_800000_804000 4000
 
 */
 
@@ -45,12 +46,13 @@ int main(int argc, char **argv) {
   FILE *f_for_acc;
   char st1[max_size];
   char *bestw[10][N];
-  char file_name[max_size], st[100][max_size], file_name2[max_size], file_name3[max_size];
+  char file_name[max_size], st[510][max_size], file_name2[max_size], file_name3[max_size];
   float dist, len, bestd[10][N], vec[max_size];
-  long long words, size, a, b, c, d, cn, bi[100];
+  long long words, size, a, b, c, d, cn, bi[300];
   char ch;
   float *M;
   char *vocab;
+  int playlist_total = atoi(argv[4]);
 
 
   long long tmp = N * i_num;
@@ -105,33 +107,32 @@ int main(int argc, char **argv) {
 
   strcpy(file_name3, argv[3]);//output file name
 
-  int input_num = 0, end_flag = 0;
+  int input_num = 0, check = 0, error = 0, gc = 0;
   char tmp_s[max_w];
 
   f_for_acc = fopen(file_name3, "w");
 
-  while (1) {
+
+  while (check < playlist_total) {
     for (a = 0; a < N; a++) bestd[input_num][a] = 0;
     for (a = 0; a < N; a++) bestw[input_num][a][0] = 0;
     //printf("Enter %d word: ", input_num+1);
     //printf("Enter word or sentence (EXIT to break): ");
-    a = 0; 
+
+    a = 0;
     fscanf(f_test, "%s", st[a]);
+    a++;
+    gc++;//gc is just for debug
     while(1){
-      if(strcmp(st[a], "ENDFILE") == 0){
-        end_flag = 1;
+      if(gc % 5 == 0)
         break;
-      }
-      else if(strcmp(st[a], "NEXT") == 0)
-        break;
+      fscanf(f_test, "%s", st[a]);
       a++;
-      if(fscanf(f_test, "%s", st[a]) != EOF)
-        continue;
-      else
-        break;
+      gc++;
     }
+    
     cn = a;
-   
+
     /*while (1) {
       //st1[a] = fgetc(f_test);
 
@@ -213,12 +214,12 @@ int main(int argc, char **argv) {
     }
     //input_num++;
 
-    if(end_flag){
-      fprintf(f_for_acc, "ENDFILE");
+    
+    //printf("check: %d\n", check);
+    check++;
+
+    if(error)
       break;
-    }
-    else
-      fprintf(f_for_acc, "NEXT ");
   }
 
   
@@ -275,8 +276,8 @@ int main(int argc, char **argv) {
     printf("%50s\t\t%f\n", aver[i].aword, aver[i].final_dist);
   */
 
-  
-  printf("finish\n");
+  //printf("next_cnt: %d\n", next_cnt);
+  //printf("finish, gc:%d\n", gc);
 
   fclose(f_test);
   fclose(f_for_acc);
