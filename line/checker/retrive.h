@@ -15,10 +15,9 @@ struct temp_prior{
 	int node;
 	bool operator< (const temp_prior &j) const
 	{
-		return value < j.value;
+		return value < j.value; 
 	}
 };
-
 
 class mapping{
 	private:
@@ -28,12 +27,26 @@ class mapping{
 		std::vector< std::vector<double> > arr;
 		int size;
 		std::pair<int,int> pt[number];
+		std::vector< std::vector<int> > query_in;
 	public:
 		mapping();				
 		mapping(const char *,const char*,int);
+		void testing()
+		{
+			for(int i=0;i<5;i++)
+				std::cout<<re[i]<<"-\n";
+		}
 		int query_int(std::string arr);		//use url to find index
 		std::string query_url(int);		//use index to find url
 		static void* find(void*);
-		void goal();
+		static void* che(void*);
+		void goal(char*,int);
+		void checking(int,char*,char*);
 };
 
+struct temp_type{
+	std::vector<std::string>* a;
+	std::vector<std::string>* b;
+	int index;
+	mapping* re;
+};
