@@ -156,10 +156,12 @@ void* mapping::find(void *parm)
 
 	for(i=temp->first->pt[temp->second].first ; i<temp->first->pt[temp->second].second ; i++)
 	{
+		while(!tt.empty())
+			tt.pop();
 		for(j=0 ; j<temp->first->arr.size() ; j++)
 		{
 			url = temp->first->query_url(j);
-			if(url.find(":") == std::string::npos)	//this is the title
+			if(url.find("spotify:track:") == std::string::npos)	//this is the title
 				continue;
 
 			all=0;
@@ -167,7 +169,9 @@ void* mapping::find(void *parm)
 			{
 				one = 0;
 				for(k=0 ; k< temp->first->size ; k++)
+				{
 					one += (temp->first->arr[j][k] - temp->first->arr[temp->first->query_in[i][l]][k]) * (temp->first->arr[j][k] - temp->first->arr[temp->first->query_in[i][l]][k]);
+				}
 			}
 			all += sqrt(one);
 			
@@ -177,6 +181,7 @@ void* mapping::find(void *parm)
 			if(tt.size()>500)
 				tt.pop();
 		}
+		
 		rever.clear();
 		for( j=0 ; j<500 ; j++)
 		{
@@ -241,7 +246,7 @@ void* mapping::che(void *parm)
 
 	mapping* re = temp->re;
 
-	int num,zero_count;
+	int num,zero_count,number;
 	size_t sz,en;
 	double error_ndcg=0,error_r=0,normal=0,pre;
 	
@@ -260,6 +265,7 @@ void* mapping::che(void *parm)
 	vector<int> test;
 
 	bool key,on;
+	int cc;
 	
 	correct_r_max = correct_ndcg_max = 0;
 	correct_r_min = correct_ndcg_min = 0;
@@ -272,10 +278,10 @@ void* mapping::che(void *parm)
 		cout<<"i:"<<i<<" ";
 		test.clear();
 
-		num = stoi(answ->at(i),nullptr);
+		number = stoi(answ->at(i),nullptr);
 
 		sz = answ->at(i).find(" ");
-		for(int j=0;j<num;j++)
+		for(int j=0;j<number;j++)
 		{
 			en = answ->at(i).substr(sz+1).find(" ");
 			test.push_back( temp->re->query_int(answ->at(i).substr(sz+1,en)) );
@@ -283,23 +289,29 @@ void* mapping::che(void *parm)
 			sz += en+1;
 		}
 
-
 		sz = en = 0;
 		correct_r = correct_ndcg = normal = 0;
 
+		if(number==0)
+		{
+			ofs<<correct_r<<" "<<correct_ndcg<<endl;
+			continue;
+		}
 		arr = quer->at(i);
 		
-		on = true;
-
+		on = false;
+		
+		cc=0;
 		for(int j=0;j<500;j++)
 		{
+			printf("j:%d\n",j);
 			key  = false;
 			pre = stod(arr.substr(sz),&en);
 			sz += en+1;
 			num = stoi(arr.substr(sz),&en);
 			sz += en+1;
 			
-		//	cout<<"j:"<<pre<<endl;
+			//	cout<<"j:"<<pre<<endl;
 		
 			for(int k=0 ; k<test.size() ; k++)
 				if(num == test[k])
@@ -307,16 +319,17 @@ void* mapping::che(void *parm)
 					key = true;
 					break;
 				}
-
-			if(j==0)
-				normal +=1;
-			else if(j<num )
-				normal += 1/log(j+1);
 				
 			if(key)
 			{
+				if(cc==0)
+					normal +=1;
+				else if(cc<number )
+					normal += 1/log(cc+1);
+				cc++;
+				
 				on = true;
-				if(j<num)
+				if(j<number)
 					correct_r += 1;
 				
 				if(j==0)
@@ -325,7 +338,10 @@ void* mapping::che(void *parm)
 					correct_ndcg += 1/log(j+1);
 			}
 		}
-		correct_r /= num;
+		if(on==false)
+			normal += 1;
+
+		correct_r /= number;
 		correct_ndcg /= normal;
 	
 		ofs<<correct_r<<" "<<correct_ndcg<<endl;
