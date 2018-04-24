@@ -12,21 +12,20 @@
 const int number=20;
 struct temp_prior{
 	double value;
-	int node;
+	long long node;
 	bool operator< (const temp_prior &j) const
 	{
 		return value < j.value; 
 	}
 };
-
 class mapping{
 	private:
 		const int thread_num = number;
-		std::map<std::string,int> dic;
+		std::map<std::string,long long> dic;
 		std::vector<std::string> re;
 		std::vector< std::vector<double> > arr;
 		int size;
-		std::pair<int,int> pt[number];
+		std::pair<long long,long long> pt[number];
 		std::vector< std::vector<int> > query_in;
 	public:
 		mapping();				

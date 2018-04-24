@@ -81,7 +81,7 @@ string mapping::query_url(int index)
 
 void mapping::goal(char* in_file,int range=-1)	//input the query file here
 {
-	int now=0,index,pt;
+	int rc,now=0,index,pt;
 	
 	ifstream in(in_file); 
 	string temp;
@@ -130,10 +130,10 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 		parm[i].first = this;
 		parm[i].second = i;
 
-		pthread_create(&thread[i],NULL,mapping::find,(void*)&parm[i]);
+		rc = pthread_create(&thread[i],NULL,mapping::find,(void*)&parm[i]);
 	}
 	for(int i=0;i<this->thread_num;i++)
-		pthread_join(thread[i],&res);
+		rc = pthread_join(thread[i],&res);
 }
 
 void* mapping::find(void *parm)
@@ -144,41 +144,20 @@ void* mapping::find(void *parm)
 	double one,all;
 
 	temp_prior h; 
-	long long i,j,l;
-	int k;
-
+	int i,j,k,l,ss,index;
 	char file[128]="ans";
-	sprintf(file,"/mnt/data/recsys_spotify/line_data/ans_%d_[%lld_%lld].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
-	FILE *out_file = fopen(file,"w");
-	
-	sprintf(file,"/mnt/data/recsys_spotify/line_data/ans_mean_%d_[%lld_%lld].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
-	FILE *out_file_mean = fopen(file,"w");
+	sprintf(file,"/mnt/data/recsys_spotify/line_data/ans_helf_%d_[%d_%d].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
 
-	priority_queue< temp_prior >tt,tt1;
+	ofstream ofs(file);
+
+	//vector< priority_queue< temp_prior > > tt(temp->first->pt[temp->second].second-temp->first->pt[temp->second].first,priority_queue<temp_prior>());
+	priority_queue< temp_prior >tt;
 	vector< temp_prior > rever;
-	vector<double> mean_vec(temp->first->size,0);
-
 
 	for(i=temp->first->pt[temp->second].first ; i<temp->first->pt[temp->second].second ; i++)
 	{
-		printf("i:%lld\n",i);
-		fflush(stdout);
-
 		while(!tt.empty())
 			tt.pop();
-		
-		while(!tt1.empty())
-			tt1.pop();
-		
-		fill(mean_vec.begin(),mean_vec.end(),0);
-		for(l=0;l<temp->first->query_in[i].size();l++)
-			for(k=0 ; k< temp->first->size ; k++)
-				mean_vec[k] += temp->first->arr[temp->first->query_in[i][l]][k];
-		for(k=0 ; k< temp->first->size ; k++)
-			mean_vec[k] /= temp->first->query_in[i].size();
-
-
-		//for(j=0 ; j<1500 ; j++)
 		for(j=0 ; j<temp->first->arr.size() ; j++)
 		{
 			url = temp->first->query_url(j);
@@ -189,7 +168,7 @@ void* mapping::find(void *parm)
 			for(l=0;l<temp->first->query_in[i].size();l++)
 			{
 				one = 0;
-				for(k=0 ; k< temp->first->size ; k++)
+				for(k=0 ; k< temp->first->size/2 ; k++)
 				{
 					one += (temp->first->arr[j][k] - temp->first->arr[temp->first->query_in[i][l]][k]) * (temp->first->arr[j][k] - temp->first->arr[temp->first->query_in[i][l]][k]);
 				}
@@ -201,19 +180,8 @@ void* mapping::find(void *parm)
 			tt.push(h);
 			if(tt.size()>500)
 				tt.pop();
-
-			one = 0;
-			if(temp->first->query_in[i].size()>0)
-				for(k=0 ; k< temp->first->size ; k++)
-					one += (mean_vec[k] - temp->first->arr[j][k])*(mean_vec[k] - temp->first->arr[j][k]);
-
-			h.node = j;
-			h.value = one;
-			tt1.push(h);
-			if(tt1.size()>500)
-				tt1.pop();
 		}
-		printf("test%d %d\n",i,tt.size());	
+		
 		rever.clear();
 		for( j=0 ; j<500 ; j++)
 		{
@@ -221,31 +189,16 @@ void* mapping::find(void *parm)
 			tt.pop();
 			rever.push_back(h);
 		}
-		for( j=499 ; j>=0 ; j--)
-			fprintf(out_file,"%lld ",rever[j].node);
-		fprintf(out_file,"\n");
 		
-		printf("test%d %d\n",i,tt1.size());	
-		
-		rever.clear();
-		for( j=0 ; j<500 ; j++)
-		{
-			h = tt1.top();
-			tt1.pop();
-			rever.push_back(h);
-		}
 		for( j=499 ; j>=0 ; j--)
-			fprintf(out_file_mean,"%lld ",rever[j].node);
-		fprintf(out_file_mean,"\n");
-
+			ofs<<rever[j].value<<","<<rever[j].node<<" ";
+		ofs<<endl;
 	}
-	fclose(out_file);
-	fclose(out_file_mean);
-	return 0;
+	ofs.close();
 }
 void mapping::checking(int num,char* test_file,char* ans_file)
 {
-	int ss=num/this->thread_num,rc;
+	int now=0,ss=num/this->thread_num,rc;
 	
 	ifstream in(test_file); 
 	string temp;
@@ -268,8 +221,6 @@ void mapping::checking(int num,char* test_file,char* ans_file)
 	pthread_t thread[this->thread_num];
 	temp_type parm[this->thread_num];
 	void *res;
-
-	printf("starting to make thread\n");
 
 	for(int i=0;i<this->thread_num;i++)
 	{
@@ -297,7 +248,8 @@ void* mapping::che(void *parm)
 
 	int num,zero_count,number;
 	size_t sz,en;
-	double normal=0,pre;
+	double error_ndcg=0,error_r=0,normal=0,pre;
+	
 	double correct_ndcg,correct_r;
 	double correct_ndcg_max,correct_r_max;
 	double correct_ndcg_min,correct_r_min;
@@ -305,7 +257,7 @@ void* mapping::che(void *parm)
 
 
 	char file[128]="ans";
-	sprintf(file,"./error_mean_%d.out",temp->index);
+	sprintf(file,"./error_%d.out",temp->index);
 	
 	ofstream ofs(file);
 	
@@ -313,7 +265,7 @@ void* mapping::che(void *parm)
 	vector<int> test;
 
 	bool key,on;
-	int cc,song_int;
+	int cc;
 	
 	correct_r_max = correct_ndcg_max = 0;
 	correct_r_min = correct_ndcg_min = 0;
@@ -321,8 +273,9 @@ void* mapping::che(void *parm)
 
 	string arr;
 	zero_count = 0;
-	for(long long i=0;i<quer->size();i++)
+	for(int i=0;i<quer->size();i++)
 	{
+		cout<<"i:"<<i<<" ";
 		test.clear();
 
 		number = stoi(answ->at(i),nullptr);
@@ -331,16 +284,9 @@ void* mapping::che(void *parm)
 		for(int j=0;j<number;j++)
 		{
 			en = answ->at(i).substr(sz+1).find(" ");
-			song_int = re->query_int(answ->at(i).substr(sz+1,en));
+			test.push_back( temp->re->query_int(answ->at(i).substr(sz+1,en)) );
+			cout<<"test:"<<test[j]<<endl;
 			sz += en+1;
-
-			if(song_int>0)
-			{
-				test.push_back(song_int);
-				cout<<"test:"<<song_int<<endl;
-			}
-			else
-				continue;
 		}
 
 		sz = en = 0;
@@ -358,13 +304,16 @@ void* mapping::che(void *parm)
 		cc=0;
 		for(int j=0;j<500;j++)
 		{
+			printf("j:%d\n",j);
 			key  = false;
+			pre = stod(arr.substr(sz),&en);
+			sz += en+1;
 			num = stoi(arr.substr(sz),&en);
 			sz += en+1;
 			
 			//	cout<<"j:"<<pre<<endl;
 		
-			for(long long k=0 ; k<test.size() ; k++)
+			for(int k=0 ; k<test.size() ; k++)
 				if(num == test[k])
 				{
 					key = true;
@@ -434,6 +383,4 @@ void* mapping::che(void *parm)
 	ofs<<"zero"<<zero_count<<endl;
 	//cout<<"avg:"<<correct_r_avg<<" "<<correct_ndcg_avg<<endl;
 	ofs.close();
-	
-	return 0; 
 }
