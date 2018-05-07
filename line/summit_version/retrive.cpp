@@ -61,7 +61,7 @@ mapping::mapping(const char *file_name,const char *file,int size)
 						key_word += temp[i];
 					else if(temp[i]=='\'')
 						key_word += temp[i];
-					else if(temp[i]==' ')
+					else if(temp[i]==' ' && key_word.size())
 					{
 						i++;
 						break;
@@ -71,7 +71,7 @@ mapping::mapping(const char *file_name,const char *file,int size)
 						break;
 				}
 
-				if(key_word[ key_word.size()-1 ] == 's' && key_word[ key_word.size()-1 ] == '\'' )
+				if(key_word[ key_word.size()-1 ] == 's' && key_word[ key_word.size()-2 ] == '\'' )
 					key_word.erase(key_word.end()-2,key_word.end());
 
 				if(i==temp.size())//last one11
@@ -85,7 +85,6 @@ mapping::mapping(const char *file_name,const char *file,int size)
 				count = 0;
 				while(1)
 				{	
-					pt = key_word.rfind(' ');
 					number = key_word+" "+to_string(count);	
 					
 					if( dic.find(number) == dic.end() )
@@ -105,6 +104,7 @@ mapping::mapping(const char *file_name,const char *file,int size)
 	}
 	in.close();
 
+	count=0;
 	in.open("/mnt/data/recsys_spotify/line_data/song_information/set");
 	while(getline(in,temp))
 	{
@@ -114,7 +114,10 @@ mapping::mapping(const char *file_name,const char *file,int size)
 		if(pt == now || pt == string::npos)
 			break;
 		count++;
+		
 		now = pt+1;
+		while(temp[now]==' ')
+			now++;
 	}
 	in.close();
 
@@ -127,7 +130,6 @@ mapping::mapping(const char *file_name,const char *file,int size)
 		pt = temp.find('_',now);
 
 		pop_song.push_back(temp.substr(now,pt-now));
-
 	}while(pop_song.size()<500);
 	in.close();
 
@@ -195,14 +197,20 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 		//for the same word there might be many version, we simply took its average
 
 		pt = now = num = 0;
+		printf("%d\n",num);
 		while(1)
 		{
-			pt = temp.find(" ",now);	
-			this->find_average(temp.substr(now,pt-now),mean_temp);
+			fill(mean_temp.begin(),mean_temp.end(),0);
 
-			now = pt+1;
-			if(now == pt || pt == string::npos)
+			pt = temp.find(" ",now);	
+			if(pt == string::npos)
 				break;
+			
+			this->find_average(temp.substr(now,pt-now),mean_temp);
+			
+			now = pt+1;
+			while(temp[now]==' ' && now<temp.size())
+				now++;
 
 			for(i=0;i<mean_temp.size();i++)
 				if(mean_temp[i]!=0)
@@ -215,34 +223,43 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 				mean_vec[i] += mean_temp[i];
 			num ++;
 		}
+		printf("%d\n",num);
 
 		//second deal with the track
 		getline(in,temp);
-		now=0;
+		pt = now = 0;
 		while(1)
 		{
-			pt = temp.find(" ",now);
-			index = this->query_int(temp.substr(now,pt-now));	
 
-			now = pt+1;
+			pt = temp.find(" ",now);
+
+			index = this->query_int(temp.substr(now,pt-now));	
+			
 			if(index == -1)
 				continue;
-
-			if(pt==now || pt == string::npos)
+			
+			if(pt == string::npos)
 				break;
 			
+			now = pt+1;
+			while(temp[now]==' ')
+				now++;
+
 			class_set[count] = this->query_set(temp.substr(now,pt-now));
 
 			num++;
 			for(j=0 ; j< this->size ; j++)
 				mean_vec[j] += this->arr[index][j];
 		}
+		printf("%d\n",num);
 
-		for(i=0;i<this->size;i++) 
-			mean_vec[j] /= num;
+		if(num!=0)
+			for(i=0;i<this->size;i++) 
+				mean_vec[j] /= num;
 
 		this->mean_vector.push_back(mean_vec);
 		count ++;
+		printf("%d\n",count);
 	}
 
 	int ss = this->mean_vector.size()/this->thread_num;
@@ -282,7 +299,7 @@ void* mapping::find(void *parm)
 	int k;
 
 	char file[128];
-	sprintf(file,"/mnt/data/recsys_spotify/line_data/ans_challenge_%d_[%lld_%lld].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
+	sprintf(file,"/mnt/data/recsys_spotify/line_data/qans_challenge_%d_[%lld_%lld].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
 	FILE *out_file = fopen(file,"w");
 
 	priority_queue< temp_prior >tt;
@@ -363,6 +380,8 @@ void mapping::find_average(string title,vector<double> &mean_temp)
 	//in this part we query every version of the word and find for its average
 	string title_temp;
 	int i,j,index;
+	cout<<title<<"-"<<endl;
+
 
 	for(i=0 ; ;i++)
 	{
@@ -378,6 +397,6 @@ void mapping::find_average(string title,vector<double> &mean_temp)
 	if(i == 0)
 		return ;
 
-	for(i=0 ; i<this->size ; i++)
-		mean_temp[i] /= i;
+	for(j=0 ; j<this->size ; j++)
+		mean_temp[j] /= i;
 }
