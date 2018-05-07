@@ -145,34 +145,39 @@ string mapping::query_url(int index)
 
 void mapping::goal(char* in_file,int range=-1)	//input the query file here
 {
-	int now=0,index,pt;
+	int now=0,index,pt,i,j,num;
 	size_t pt,now;
 
 	ifstream in(in_file); 
 	string temp;
 	vector<int> qu;
-	vector<double> mean_vec,mean_temp;
+	vector<double> mean_vec(this->size,0),mean_temp;
+
+
+	this->mean_vector.clear();
 
 	getline(in,temp);
 	while(in)
 	{
-		mean_vec.clear();
+		fill(mean_vec.begin(),mean_vec.end(),0);
 		//first deal with title
 		//for the same word there might be many version, we simply took its average
 
-		pt = now = 0;
+		pt = now = num = 0;
 		while(1)
 		{
-			pt = temp.find(" ",now);
-		
+			pt = temp.find(" ",now);	
 			mean_temp = this->find_average(temp.substr(now,pt-now));
 
+			for(i=0;i<mean_temp.size();i++)
+				mean_vec[i] += mean_temp[i];
 
+			num += 1;
 			if(pt == -1)
 				break;
 			now = pt+1;
 		}
-		
+
 		//second deal with the track
 		getline(in,temp);
 		now=0;
@@ -182,34 +187,25 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 			pt = temp.find(" ",now);
 			index = this->query_int(temp.substr(now,pt-now));	
 
-
-			/*		
-			fill(mean_vec.begin(),mean_vec.end(),0);
-			for(l=0;l<temp->first->query_in[i].size();l++)
-				for(k=0 ; k< temp->first->size ; k++)
-					mean_vec[k] += temp->first->arr[temp->first->query_in[i][l]][k];
-			for(k=0 ; k< temp->first->size ; k++)
-				mean_vec[k] /= temp->first->query_in[i].size();
-			*/
+			if(index == -1)
+				continue;
 			
-			if(index==-1)	//don't put in it doesn't happen before
-			{
-			}
-			else
-				qu.push_back(index);
-			now = pt+1;
+			num++;
+			
+			for(j=0 ; j< this->size ; k++)
+				mean_vec[j] += this->arr[index][j];
 
-			if(pt == temp.size())
-				break;
+			now = pt+1;
 		}
-		this->query_in.push_back(qu);
-		if(range>0)
-			range--;
-		if(range==0)
-			break;
+
+		for(i=0;i<this->size;i++) 
+			mean_vec[j] /= num;
+
+		this->mean_vector.push_back(mean_vec);
 	}
 
-	int ss=query_in.size()/this->thread_num;
+	int ss = this->mean_vector.size()/this->thread_num;
+
 	pthread_t thread[this->thread_num];
 	pair<mapping*,int> parm[this->thread_num];
 	void *res;
@@ -220,7 +216,7 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 		this->pt[i].second =(i+1)*ss;
 
 		if( i == (this->thread_num-1))
-			this->pt[i].second = query_in.size();
+			this->pt[i].second = this->mean_vector.size();
 
 		thread[i] = i;
 
@@ -245,7 +241,7 @@ void* mapping::find(void *parm)
 	int k;
 
 	char file[128];
-	sprintf(file,"/mnt/data/recsys_spotify/line_data/ans_mean_%d_[%lld_%lld].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
+	sprintf(file,"/mnt/data/recsys_spotify/line_data/ans_challenge_%d_[%lld_%lld].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
 	FILE *out_file = fopen(file,"w");
 
 	priority_queue< temp_prior >tt;
@@ -257,7 +253,6 @@ void* mapping::find(void *parm)
 		while(!tt.empty())
 			tt.pop();
 		
-
 		for(j=0 ; j<temp->first->arr.size() ; j++)
 		{
 			url = temp->first->query_url(j);
@@ -265,25 +260,28 @@ void* mapping::find(void *parm)
 				continue;
 
 			one = 0;
-			if(temp->first->query_in[i].size()>0)
-				for(k=0 ; k< temp->first->size ; k++)
-					one += (mean_vec[k] - temp->first->arr[j][k])*(mean_vec[k] - temp->first->arr[j][k]);
+			for(k=0 ; k< temp->first->size ; k++)
+				one += (mean_vec[k] - temp->first->arr[j][k])*(mean_vec[k] - temp->first->arr[j][k]);
 
 			h.node = j;
 			h.value = one;
+
 			tt.push(h);
-			if(tt.size()>500)
+			if(tt.size()>600)
 				tt.pop();
 
 		}
 
 		rever.clear();
-		for( j=0 ; j<500 ; j++)
+		for( j=0 ; j<600 ; j++)
 		{
 			h = tt.top();
 			tt.pop();
 			rever.push_back(h);
 		}
+		
+		//use the set group result to double fine check the output
+
 		for( j=499 ; j>=0 ; j--)
 			fprintf(out_file,"%lld ",rever[j].node);
 		fprintf(out_file,"\n");
@@ -293,9 +291,26 @@ void* mapping::find(void *parm)
 	return 0;
 }
 
-vector<double>find_average(string title)
+vector<double> mapping::find_average(string title)
 {
 	//in this part we query every version of the word and find for its average
+	string title_temp;
+	int i,j,index;
+	vector<double> mean_temp(this->size,0);
 
+	for(i=0 ; ;i++)
+	{
+		title_temp = title + " " + to_string(i);
+		index = this->query_int(title_temp);
 
+		if(index == -1)
+			break;
+			
+		for(j=0;j<this->size;j++)
+			mean_temp[j] += this->arr[index][j];
+	}
+	for(i=0 ; i<this->size ; i++)
+		mean_temp[i] /= i;
+	
+	return mean_temp;
 }
