@@ -221,59 +221,34 @@ void* mapping::find(void *parm)
 	long long i,j,l;
 	int k;
 
-	char file[128]="ans";
-	sprintf(file,"/mnt/data/recsys_spotify/line_data/ans_%d_[%lld_%lld].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
-	FILE *out_file = fopen(file,"w");
-	
+	char file[128];
 	sprintf(file,"/mnt/data/recsys_spotify/line_data/ans_mean_%d_[%lld_%lld].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
-	FILE *out_file_mean = fopen(file,"w");
+	FILE *out_file = fopen(file,"w");
 
-	priority_queue< temp_prior >tt,tt1;
+	priority_queue< temp_prior >tt;
 	vector< temp_prior > rever;
-	vector<double> mean_vec(temp->first->size,0);
+//	vector<double> mean_vec(temp->first->size,0);
 
 
 	for(i=temp->first->pt[temp->second].first ; i<temp->first->pt[temp->second].second ; i++)
 	{
-		printf("i:%lld\n",i);
-		fflush(stdout);
-
 		while(!tt.empty())
 			tt.pop();
 		
-		while(!tt1.empty())
-			tt1.pop();
-		
+/*		
 		fill(mean_vec.begin(),mean_vec.end(),0);
 		for(l=0;l<temp->first->query_in[i].size();l++)
 			for(k=0 ; k< temp->first->size ; k++)
 				mean_vec[k] += temp->first->arr[temp->first->query_in[i][l]][k];
 		for(k=0 ; k< temp->first->size ; k++)
 			mean_vec[k] /= temp->first->query_in[i].size();
-
+*/
 
 		for(j=0 ; j<temp->first->arr.size() ; j++)
 		{
 			url = temp->first->query_url(j);
 			if(url.find("spotify:track:") == std::string::npos)	//this is the title
 				continue;
-
-			all=0;
-			for(l=0;l<temp->first->query_in[i].size();l++)
-			{
-				one = 0;
-				for(k=0 ; k< temp->first->size ; k++)
-				{
-					one += (temp->first->arr[j][k] - temp->first->arr[temp->first->query_in[i][l]][k]) * (temp->first->arr[j][k] - temp->first->arr[temp->first->query_in[i][l]][k]);
-				}
-			}
-			all += sqrt(one);
-			
-			h.node = j;
-			h.value = all;
-			tt.push(h);
-			if(tt.size()>500)
-				tt.pop();
 
 			one = 0;
 			if(temp->first->query_in[i].size()>0)
@@ -282,11 +257,12 @@ void* mapping::find(void *parm)
 
 			h.node = j;
 			h.value = one;
-			tt1.push(h);
-			if(tt1.size()>500)
-				tt1.pop();
+			tt.push(h);
+			if(tt.size()>500)
+				tt.pop();
+
 		}
-		printf("test%d %d\n",i,tt.size());	
+
 		rever.clear();
 		for( j=0 ; j<500 ; j++)
 		{
@@ -297,216 +273,8 @@ void* mapping::find(void *parm)
 		for( j=499 ; j>=0 ; j--)
 			fprintf(out_file,"%lld ",rever[j].node);
 		fprintf(out_file,"\n");
-		
-		printf("test%d %d\n",i,tt1.size());	
-		
-		rever.clear();
-		for( j=0 ; j<500 ; j++)
-		{
-			h = tt1.top();
-			tt1.pop();
-			rever.push_back(h);
-		}
-		for( j=499 ; j>=0 ; j--)
-			fprintf(out_file_mean,"%lld ",rever[j].node);
-		fprintf(out_file_mean,"\n");
 
 	}
 	fclose(out_file);
-	fclose(out_file_mean);
 	return 0;
-}
-void mapping::checking(int num,char* test_file,char* ans_file)
-{
-	int ss=num/this->thread_num,rc;
-	
-	ifstream in(test_file); 
-	string temp;
-	vector<string> quer[this->thread_num];
-	for(int i=0;i<num;i++)
-	{
-		getline(in,temp);
-		quer[i/ss].push_back(temp);
-	}
-	in.close();
-
-	in.open(ans_file);
-	vector<string> answ[this->thread_num];
-	for(int i=0;i<num;i++)
-	{
-		getline(in,temp);	
-		answ[i/ss].push_back(temp);
-	}
-
-	pthread_t thread[this->thread_num];
-	temp_type parm[this->thread_num];
-	void *res;
-
-	printf("starting to make thread\n");
-
-	for(int i=0;i<this->thread_num;i++)
-	{
-		thread[i] = i;
-
-		parm[i].a = &quer[i];
-		parm[i].b = &answ[i];
-		parm[i].index = i;
-		parm[i].re = this;
-
-		rc = pthread_create(&thread[i],NULL,mapping::che,(void*)&parm[i]);
-	}
-	for(int i=0;i<this->thread_num;i++)
-		rc = pthread_join(thread[i],&res);
-}
-
-void* mapping::che(void *parm)
-{
-	temp_type *temp = (temp_type*) parm;
-
-	vector<string> *quer = temp->a;
-	vector<string> *answ = temp->b;
-
-	mapping* re = temp->re;
-
-	int num,zero_count,number;
-	size_t sz,en;
-	double normal=0,pre;
-	double correct_ndcg,correct_r;
-	double correct_ndcg_max,correct_r_max;
-	double correct_ndcg_min,correct_r_min;
-	double correct_ndcg_avg,correct_r_avg;
-
-
-	char file[128]="ans";
-	sprintf(file,"./error_mean_%d.out",temp->index);
-	
-	ofstream ofs(file);
-	
-	string url;
-	vector<int> test;
-
-	bool key,on;
-	int cc,song_int;
-	
-	correct_r_max = correct_ndcg_max = 0;
-	correct_r_min = correct_ndcg_min = 0;
-	correct_r_avg = correct_ndcg_avg = 0;
-
-	string arr;
-	zero_count = 0;
-	for(long long i=0;i<quer->size();i++)
-	{
-		test.clear();
-
-		number = stoi(answ->at(i),nullptr);
-
-		sz = answ->at(i).find(" ");
-		for(int j=0;j<number;j++)
-		{
-			en = answ->at(i).substr(sz+1).find(" ");
-			song_int = re->query_int(answ->at(i).substr(sz+1,en));
-			sz += en+1;
-
-			if(song_int>0)
-			{
-				test.push_back(song_int);
-				cout<<"test:"<<song_int<<endl;
-			}
-			else
-				continue;
-		}
-
-		sz = en = 0;
-		correct_r = correct_ndcg = normal = 0;
-
-		if(number==0)
-		{
-			ofs<<correct_r<<" "<<correct_ndcg<<endl;
-			continue;
-		}
-		arr = quer->at(i);
-		
-		on = false;
-		
-		cc=0;
-		for(int j=0;j<500;j++)
-		{
-			key  = false;
-			num = stoi(arr.substr(sz),&en);
-			sz += en+1;
-			
-			//	cout<<"j:"<<pre<<endl;
-		
-			for(long long k=0 ; k<test.size() ; k++)
-				if(num == test[k])
-				{
-					key = true;
-					break;
-				}
-				
-			if(key)
-			{
-				if(cc==0)
-					normal +=1;
-				else if(cc<number )
-					normal += 1/log(cc+1);
-				cc++;
-				
-				on = true;
-				if(j<number)
-					correct_r += 1;
-				
-				if(j==0)
-					correct_ndcg += 1;
-				else
-					correct_ndcg += 1/log(j+1);
-			}
-		}
-		if(on==false)
-			normal += 1;
-
-		correct_r /= number;
-		correct_ndcg /= normal;
-	
-		ofs<<correct_r<<" "<<correct_ndcg<<endl;
-
-		if(i==0)
-		{
-			correct_r_max = correct_r_min = correct_r;
-			correct_ndcg_max = correct_ndcg_min = correct_ndcg;
-		}
-		else
-		{
-			if(correct_r_max < correct_r)
-				correct_r_max = correct_r;
-			if(correct_ndcg_max < correct_ndcg)
-				correct_ndcg_max = correct_ndcg;
-			
-			if(correct_r_min > correct_r)
-				correct_r_min = correct_r;
-			if(correct_ndcg_min > correct_ndcg)
-				correct_ndcg_min = correct_ndcg;
-		}
-	
-		correct_r_avg += correct_r;
-		correct_ndcg_avg += correct_ndcg;
-
-		if(on ==false)
-			zero_count++;
-	}
-
-	correct_r_avg /= quer->size();
-	correct_ndcg_avg /= quer->size();
-	ofs<<"---------------------------------------------\n";
-	cout<<"---------------------------------------------\n";
-	ofs<<"max:"<<temp->index<<" "<<correct_r_max<<" "<<correct_ndcg_max<<endl;
-	//cout<<"max:"<<correct_r_max<<" "<<correct_ndcg_max<<endl;
-	ofs<<"min:"<<correct_r_min<<" "<<correct_ndcg_min<<endl;
-	//cout<<"min:"<<correct_r_min<<" "<<correct_ndcg_min<<endl;
-	ofs<<"avg:"<<correct_r_avg<<" "<<correct_ndcg_avg<<endl;
-	ofs<<"zero"<<zero_count<<endl;
-	//cout<<"avg:"<<correct_r_avg<<" "<<correct_ndcg_avg<<endl;
-	ofs.close();
-	
-	return 0; 
 }
