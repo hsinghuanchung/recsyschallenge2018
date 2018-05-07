@@ -146,19 +146,32 @@ string mapping::query_url(int index)
 void mapping::goal(char* in_file,int range=-1)	//input the query file here
 {
 	int now=0,index,pt;
-	
+	size_t pt,now;
+
 	ifstream in(in_file); 
 	string temp;
 	vector<int> qu;
+	vector<double> mean_vec,mean_temp;
 
 	getline(in,temp);
 	while(in)
 	{
+		mean_vec.clear();
 		//first deal with title
 		//for the same word there might be many version, we simply took its average
 
+		pt = now = 0;
+		while(1)
+		{
+			pt = temp.find(" ",now);
+		
+			mean_temp = this->find_average(temp.substr(now,pt-now));
 
 
+			if(pt == -1)
+				break;
+			now = pt+1;
+		}
 		
 		//second deal with the track
 		getline(in,temp);
@@ -166,8 +179,18 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 		qu.clear();
 		while(1)
 		{
-			pt = temp.find_first_of(" ",now);
+			pt = temp.find(" ",now);
 			index = this->query_int(temp.substr(now,pt-now));	
+
+
+			/*		
+			fill(mean_vec.begin(),mean_vec.end(),0);
+			for(l=0;l<temp->first->query_in[i].size();l++)
+				for(k=0 ; k< temp->first->size ; k++)
+					mean_vec[k] += temp->first->arr[temp->first->query_in[i][l]][k];
+			for(k=0 ; k< temp->first->size ; k++)
+				mean_vec[k] /= temp->first->query_in[i].size();
+			*/
 			
 			if(index==-1)	//don't put in it doesn't happen before
 			{
@@ -227,7 +250,6 @@ void* mapping::find(void *parm)
 
 	priority_queue< temp_prior >tt;
 	vector< temp_prior > rever;
-//	vector<double> mean_vec(temp->first->size,0);
 
 
 	for(i=temp->first->pt[temp->second].first ; i<temp->first->pt[temp->second].second ; i++)
@@ -235,14 +257,6 @@ void* mapping::find(void *parm)
 		while(!tt.empty())
 			tt.pop();
 		
-/*		
-		fill(mean_vec.begin(),mean_vec.end(),0);
-		for(l=0;l<temp->first->query_in[i].size();l++)
-			for(k=0 ; k< temp->first->size ; k++)
-				mean_vec[k] += temp->first->arr[temp->first->query_in[i][l]][k];
-		for(k=0 ; k< temp->first->size ; k++)
-			mean_vec[k] /= temp->first->query_in[i].size();
-*/
 
 		for(j=0 ; j<temp->first->arr.size() ; j++)
 		{
@@ -277,4 +291,11 @@ void* mapping::find(void *parm)
 	}
 	fclose(out_file);
 	return 0;
+}
+
+vector<double>find_average(string title)
+{
+	//in this part we query every version of the word and find for its average
+
+
 }

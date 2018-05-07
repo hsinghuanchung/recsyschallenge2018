@@ -26,7 +26,7 @@ class mapping{
 		std::vector< std::vector<double> > arr;
 		int size;
 		std::pair<long long,long long> pt[number];
-		std::vector< std::vector<int> > query_in;
+		std::vector< std::vector<double> > mean_vector;
 	public:
 		mapping();				
 		mapping(const char *,const char*,int);
@@ -37,10 +37,9 @@ class mapping{
 		}
 		int query_int(std::string arr);		//use url to find index
 		std::string query_url(int);		//use index to find url
-		static void* find(void*);
-		static void* che(void*);
 		void goal(char*,int);
-		void checking(int,char*,char*);
+		static void* find(void*);
+		vector<double>find_average(string);
 };
 
 struct temp_type{
