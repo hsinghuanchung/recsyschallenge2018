@@ -9,6 +9,7 @@
 #include<cmath>
 #include<vector>
 #include<pthread.h>
+
 const int number=20;
 struct temp_prior{
 	double value;
@@ -21,8 +22,10 @@ struct temp_prior{
 class mapping{
 	private:
 		const int thread_num = number;
-		std::map<std::string,long long> dic;
+		std::map<std::string, pair<long long,int>> dic;
 		std::vector<std::string> re;
+		std::vector<int> class_set;
+		std::vector<string> pop_song;
 		std::vector< std::vector<double> > arr;
 		int size;
 		std::pair<long long,long long> pt[number];
@@ -30,16 +33,12 @@ class mapping{
 	public:
 		mapping();				
 		mapping(const char *,const char*,int);
-		void testing()
-		{
-			for(int i=0;i<5;i++)
-				std::cout<<re[i]<<"-\n";
-		}
+		int query_set(std::string arr);		//use url to find index
 		int query_int(std::string arr);		//use url to find index
 		std::string query_url(int);		//use index to find url
 		void goal(char*,int);
 		static void* find(void*);
-		vector<double>find_average(string);
+		vector<double>find_average(string,vector<double> &);
 };
 
 struct temp_type{
