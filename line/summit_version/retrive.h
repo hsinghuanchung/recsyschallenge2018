@@ -22,10 +22,10 @@ struct temp_prior{
 class mapping{
 	private:
 		const int thread_num = number;
-		std::map<std::string, pair<long long,int>> dic;
+		std::map<std::string, std::pair<long long,int>> dic;
 		std::vector<std::string> re;
 		std::vector<int> class_set;
-		std::vector<string> pop_song;
+		std::vector<std::string> pop_song;
 		std::vector< std::vector<double> > arr;
 		int size;
 		std::pair<long long,long long> pt[number];
@@ -38,7 +38,7 @@ class mapping{
 		std::string query_url(int);		//use index to find url
 		void goal(char*,int);
 		static void* find(void*);
-		vector<double>find_average(string,vector<double> &);
+		void find_average(std::string,std::vector<double> &);
 };
 
 struct temp_type{

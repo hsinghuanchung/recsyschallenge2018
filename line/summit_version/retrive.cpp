@@ -14,7 +14,7 @@ mapping::mapping(const char *file_name,const char *file,int size)
 	ifstream in(file_name); 
 	string temp;
 	int index,num,i,count;
-	size_t pt;
+	size_t pt,now;
 	string number;
 
 
@@ -90,7 +90,7 @@ mapping::mapping(const char *file_name,const char *file,int size)
 					
 					if( dic.find(number) == dic.end() )
 					{
-						dic[number] = num;
+						dic[number].first = num;
 						break;
 					}
 					else
@@ -105,31 +105,30 @@ mapping::mapping(const char *file_name,const char *file,int size)
 	}
 	in.close();
 
-	int count=0;
-	in.open('/mnt/data/recsys_spotify/line_data/song_information/set');
+	in.open("/mnt/data/recsys_spotify/line_data/song_information/set");
 	while(getline(in,temp))
 	{
 		now = pt = 0;
 		pt = temp.find(' ',now);
 		dic[temp.substr(now,pt-now)].second = count;
-		if(pt == now || pt == -1)
+		if(pt == now || pt == string::npos)
 			break;
 		count++;
 		now = pt+1;
 	}
 	in.close();
 
-	pop.song.clear();
-	in.open('/mnt/data/recsys_spotify/line_data/song_information/song_sort');
+	pop_song.clear();
+	in.open("/mnt/data/recsys_spotify/line_data/song_information/song_sort");
 	do
 	{
-		getline(in,temp)
+		getline(in,temp);
 		now = pt = 0;
 		pt = temp.find('_',now);
 
 		pop_song.push_back(temp.substr(now,pt-now));
 
-	}while(pop_song.size()<500)
+	}while(pop_song.size()<500);
 	in.close();
 
 	string::size_type s1,s2;
@@ -154,7 +153,6 @@ mapping::mapping(const char *file_name,const char *file,int size)
 		}
 		arr.push_back(data);
 	}
-	this->testing();
 }
 int  mapping::query_int(string arr)
 {
@@ -176,7 +174,7 @@ int  mapping::query_set(string arr)
 }
 void mapping::goal(char* in_file,int range=-1)	//input the query file here
 {
-	int now=0,index,pt,i,j,num,count=0;
+	int index,i,j,num,count=0;
 	size_t pt,now;
 
 	ifstream in(in_file); 
@@ -203,7 +201,7 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 			this->find_average(temp.substr(now,pt-now),mean_temp);
 
 			now = pt+1;
-			if(now == pt || pt == -1)
+			if(now == pt || pt == string::npos)
 				break;
 
 			for(i=0;i<mean_temp.size();i++)
@@ -230,13 +228,13 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 			if(index == -1)
 				continue;
 
-			if(pt==now || pt ==-1)
+			if(pt==now || pt == string::npos)
 				break;
 			
 			class_set[count] = this->query_set(temp.substr(now,pt-now));
 
 			num++;
-			for(j=0 ; j< this->size ; k++)
+			for(j=0 ; j< this->size ; j++)
 				mean_vec[j] += this->arr[index][j];
 		}
 
@@ -277,10 +275,10 @@ void* mapping::find(void *parm)
 	pair<mapping*,int> *temp = (pair<mapping*,int>*) parm;
 	string url;
 
-	double one,all;
+	double one;
 
 	temp_prior h; 
-	long long i,j,l;
+	long long i,j;
 	int k;
 
 	char file[128];
@@ -302,7 +300,7 @@ void* mapping::find(void *parm)
 		{
 			///out_put first 500 pop
 			for( j=0 ; j<500 ; j++)
-				fprintf(out_file,"%s ",pop_song[j].c_str());
+				fprintf(out_file,"%s ",temp->first->pop_song[j].c_str());
 			fprintf(out_file,"\n");
 		}
 		else
