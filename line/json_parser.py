@@ -7,7 +7,7 @@ arr = []
 index = 0
 mapping={}
 
-for i in range(800):
+for i in range(1000):
 	#print(i)
 	fullpath = "/mnt/data/recsys_spotify/data/mpd.slice.{0}-{1}.json".format(i*1000,i*1000+999)
 
