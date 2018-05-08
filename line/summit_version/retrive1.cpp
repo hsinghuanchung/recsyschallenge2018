@@ -1,4 +1,4 @@
-#include"retrive.h"
+#include"retrive1.h"
 using namespace std;
 
 mapping::mapping()
@@ -7,7 +7,9 @@ mapping::mapping()
 }
 mapping::mapping(const char *file_name,const char *file,int size)
 {
+
 	//open the file here and make it into file
+	
 	this->size = size;
 	string key_word;
 
@@ -27,7 +29,6 @@ mapping::mapping(const char *file_name,const char *file,int size)
 	{
 		//cout<<index<<endl;
 		index = temp.rfind(' ');
-				
 		num = atoi(&temp.c_str()[index+1]);	
 	    temp.erase(temp.begin()+index,temp.end());
 
@@ -36,10 +37,12 @@ mapping::mapping(const char *file_name,const char *file,int size)
 		//check if it is title or track
 
 
-		if(temp.find("spotify:track:"))
+		if(temp.find("spotify:track:")!=string::npos)
 		{
 			if( dic.find(temp) == dic.end() )
+			{
 				dic[temp].first = num;
+			}
 			else
 				cout<<"it seems to be some error\n";	
 		}
@@ -96,9 +99,9 @@ mapping::mapping(const char *file_name,const char *file,int size)
 	in.open("/mnt/data/recsys_spotify/line_data/song_information/set");
 	while(getline(in,temp))
 	{
+		now = pt = 0;
 		while(1)
 		{
-			now = pt = 0;
 			pt = temp.find(' ',now);
 			dic[temp.substr(now,pt-now)].second = count;
 			if(pt == string::npos)
@@ -167,93 +170,18 @@ int  mapping::query_set(string arr)
 }
 void mapping::goal(char* in_file,int range=-1)	//input the query file here
 {
-	int index,i,j,num,count=0;
-	size_t pt,now;
-
 	ifstream in(in_file); 
-	string temp,ans;
-	vector<int> qu;
-	vector<double> mean_vec(this->size,0),mean_temp;
-
-
-	this->mean_vector.clear();
-
-	fill(this->class_set.begin(),this->class_set.end(),-1);
+	string temp;
 
 	getline(in,temp);
 	while(in)
 	{
-		fill(mean_vec.begin(),mean_vec.end(),0);
-		//first deal with title
-		//for the same word there might be many version, we simply took its average
-
-		pt = now = num = 0;
-		printf("%d\n",num);
-		if(temp!="")
-		{
-			while(pt != string::npos)
-			{
-				fill(mean_temp.begin(),mean_temp.end(),0);
-
-				pt = temp.find(" ",now);	
-				this->find_average(temp.substr(now,pt-now),mean_temp);
-				
-				now = pt+1;
-				while(now<temp.size() && temp[now]==' ')
-					now++;			
-
-				for(i=0;i<mean_temp.size();i++)
-					if(mean_temp[i]!=0)
-						break;
-
-				if(i==mean_temp.size())
-					continue;
-				for(i=0;i<mean_temp.size();i++)
-					mean_vec[i] += mean_temp[i];
-				num ++;
-			}
-		}
-		printf("%d\n",num);
-
-		//second deal with the track
+		this->query.push_back(temp);
 		getline(in,temp);
-		if(temp!="")
-		{
-			pt = now = 0;
-			while(pt != string::npos)
-			{
-				pt = temp.find(" ",now);
-
-				ans = temp.substr(now,pt-now);
-				index = this->query_int(ans);	
-				
-				now = pt+1;
-				while(now<temp.size() && temp[now]==' ')
-					now++;
-
-				if(index == -1)
-					continue;
-
-				class_set[count] = this->query_set(ans);
-
-				num++;
-				for(j=0 ; j< this->size ; j++)
-					mean_vec[j] += this->arr[index][j];
-			}	
-		}
-		printf("%d\n",num);
-
-		if(num!=0)
-			for(i=0;i<this->size;i++) 
-				mean_vec[j] /= num;
-
-		this->mean_vector.push_back(mean_vec);
-		count ++;
-		printf("%d\n",count);
+		this->query.push_back(temp);
 		getline(in,temp);
 	}
-
-	int ss = this->mean_vector.size()/this->thread_num;
+	int ss = this->query.size()/this->thread_num;
 
 	pthread_t thread[this->thread_num];
 	pair<mapping*,int> parm[this->thread_num];
@@ -265,7 +193,7 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 		this->pt[i].second =(i+1)*ss;
 
 		if( i == (this->thread_num-1))
-			this->pt[i].second = this->mean_vector.size();
+			this->pt[i].second = this->query.size();
 
 		thread[i] = i;
 
@@ -287,7 +215,7 @@ void* mapping::find(void *parm)
 
 	temp_prior h; 
 	long long i,j;
-	int k;
+	int k,num,index;
 
 	char file[128];
 	sprintf(file,"/mnt/data/recsys_spotify/line_data/qans_challenge_%d_[%lld_%lld].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
@@ -297,11 +225,85 @@ void* mapping::find(void *parm)
 	vector< temp_prior > rever;
 	vector<string> left;
 	queue<int> ans;
+	int class_set;
+	string line,temp_line;
+	vector<double> mean_vec(temp->first->size,0),mean_temp(temp->first->size,0);
+	size_t now,pt;
 
-	for(i=temp->first->pt[temp->second].first ; i<temp->first->pt[temp->second].second ; i++)
+	for(i=temp->first->pt[temp->second].first ; i<temp->first->pt[temp->second].second ; i+=2)
 	{
+		printf("%lld\n",i);
+				
+		line = temp->first->query[i];
+		fill(mean_vec.begin(),mean_vec.end(),0);
+		//first deal with title
+		//for the same word there might be many version, we simply took its average
+	
+		pt = now = num = 0;
+		if(line!="")
+		{
+			while(pt != string::npos)
+			{
+				fill(mean_temp.begin(),mean_temp.end(),0);
+
+				pt = line.find(" ",now);	
+				temp->first->find_average(line.substr(now,pt-now),mean_temp);
+					
+				now = pt+1;
+				while(now<line.size() && line[now]==' ')
+					now++;			
+	
+				for(j=0;j<mean_temp.size();j++)
+					if(mean_temp[j]!=0)
+						break;
+		
+				if(j==mean_temp.size())
+					continue;
+				for(j=0;j<mean_temp.size();j++)
+					mean_vec[j] += mean_temp[j];
+				num ++;
+			}
+		}
+		
+		if(num!=0)
+			for(j=0;j<temp->first->size;j++) 
+				mean_vec[j] /= num;
+		num = 1;
+
+		//second deal with the track
+		line = temp->first->query[i+1];
+		if(line!="")
+		{
+			pt = now = 0;
+			while(pt != string::npos)
+			{
+				pt = line.find(" ",now);
+
+				temp_line = line.substr(now,pt-now);
+				index = temp->first->query_int(temp_line);	
+					
+				now = pt+1;
+				while(now<line.size() && line[now]==' ')
+					now++;
+	
+				if(index == -1)
+					continue;
+	
+				class_set = temp->first->query_set(temp_line);
+	
+				num++;
+				for(j=0 ; j< temp->first->size ; j++)
+					mean_vec[j] += temp->first->arr[index][j];
+			}	
+		}
+	
+		if(num!=0)
+			for(j=0;j<temp->first->size;j++) 
+				mean_vec[j] /= num;
+	
+		
 		for(j=0;j<temp->first->size ; j++)
-			if(temp->first->mean_vector[i][j] != 0)
+			if(mean_vec[j] != 0)
 				break;
 
 		if(j==temp->first->size)
@@ -323,7 +325,7 @@ void* mapping::find(void *parm)
 
 				one = 0;
 				for(k=0 ; k< temp->first->size ; k++)
-					one += (temp->first->mean_vector[i][k] - temp->first->arr[j][k])*(temp->first->mean_vector[i][k] - temp->first->arr[j][k]);
+					one += (mean_vec[k] - temp->first->arr[j][k])*(mean_vec[k] - temp->first->arr[j][k]);
 
 				h.node = j;
 				h.value = one;
@@ -348,7 +350,7 @@ void* mapping::find(void *parm)
 			for( j=999 ; j>=0 ; j--)
 			{
 				url = temp->first->query_url(rever[j].node);
-				if( temp->first->query_set(url) == temp->first->class_set[i] )
+				if( temp->first->query_set(url) == class_set)
 				{
 					fprintf(out_file,"%s ",url.c_str());
 					k--;
