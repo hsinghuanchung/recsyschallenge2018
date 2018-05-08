@@ -9,13 +9,15 @@ mapping::mapping(const char *file_name,const char *file,int size)
 {
 	//open the file here and make it into file
 	this->size = size;
-
-
+	string key_word;
 
 	ifstream in(file_name); 
 	string temp;
-	int index,num;
-	
+	int index,num,i,count;
+	size_t pt,now;
+	string number;
+
+
 	printf("%s\n",file_name);
 
 	getline(in,temp);
@@ -29,21 +31,100 @@ mapping::mapping(const char *file_name,const char *file,int size)
 		num = atoi(&temp.c_str()[index+1]);	
 	    temp.erase(temp.begin()+index,temp.end());
 
-		if( dic.find(temp) == dic.end() )
+		re.push_back(temp);
+
+		//check if it is title or track
+
+
+		if(temp.find("spotify:track:"))
 		{
-			dic[temp] = num;
+			if( dic.find(temp) == dic.end() )
+				dic[temp].first = num;
+			else
+				cout<<"it seems to be some error\n";	
 		}
 		else
 		{
-			cout<<"it seems to be some error\n";	
-		}
-		re.push_back(temp);
-	}
+			i=0;
+			while(1)
+			{
+				key_word = "";
+				while(i<temp.size())
+				{
+					if(temp[i]==' ')
+					{
+						i++;
+						break;
+					}	
+					else
+						key_word += temp[i];
 
+					i++;
+				}
+
+				if(i==temp.size())//last one11
+				{
+					pt = key_word.rfind('_');
+					if(pt == 0 )
+						break;
+					key_word = key_word.substr(0,pt);
+				}	
+
+				count = 0;
+				while(1)
+				{	
+					number = key_word+" "+to_string(count);	
+					
+					if( dic.find(number) == dic.end() )
+					{
+						dic[number].first = num;
+						break;
+					}
+					else
+					{
+						count++;	
+					}	
+				}
+				if(i==temp.size())
+					break;	
+			}
+		}
+	}
+	in.close();
+
+	count=0;
+	in.open("/mnt/data/recsys_spotify/line_data/song_information/set");
+	while(getline(in,temp))
+	{
+		while(1)
+		{
+			now = pt = 0;
+			pt = temp.find(' ',now);
+			dic[temp.substr(now,pt-now)].second = count;
+			if(pt == string::npos)
+				break;
+
+			now = pt+1;
+			while(temp[now]==' ')
+				now++;
+		}
+		count++;			
+	}
+	in.close();
+
+	pop_song.clear();
+	in.open("/mnt/data/recsys_spotify/line_data/song_information/song_sort");
+	do
+	{
+		getline(in,temp);
+		now = pt = 0;
+		pt = temp.find('_',now);
+
+		pop_song.push_back(temp.substr(now,pt-now));
+	}while(pop_song.size()<500);
 	in.close();
 
 	string::size_type s1,s2;
-	
 	double val;
 	char size_num[128];
 	sprintf(size_num,"%s%d",file,size);
@@ -65,54 +146,115 @@ mapping::mapping(const char *file_name,const char *file,int size)
 		}
 		arr.push_back(data);
 	}
-	this->testing();
 }
 int  mapping::query_int(string arr)
 {
 	if(dic.find(arr) == dic.end())
 		return -1;
 
-	return this->dic[arr];
+	return this->dic[arr].first;
 }
 string mapping::query_url(int index)
 {
 	return this->re[index];
 }
+int  mapping::query_set(string arr)
+{
+	if(dic.find(arr) == dic.end())
+		return -1;
 
+	return this->dic[arr].second;
+}
 void mapping::goal(char* in_file,int range=-1)	//input the query file here
 {
-	int rc,now=0,index,pt;
-	
+	int index,i,j,num,count=0;
+	size_t pt,now;
+
 	ifstream in(in_file); 
-	string temp;
+	string temp,ans;
 	vector<int> qu;
+	vector<double> mean_vec(this->size,0),mean_temp;
 
-	while(getline(in,temp))
+
+	this->mean_vector.clear();
+
+	fill(this->class_set.begin(),this->class_set.end(),-1);
+
+	getline(in,temp);
+	while(in)
 	{
-		now=0;
-		qu.clear();
-		for(int i=0 ; i<5 ; i++)
-		{
-			pt = temp.find_first_of(" ",now);
-			index = this->query_int(temp.substr(now,pt-now));	
-			
-			//cout<<"index"<<index<<endl;
+		fill(mean_vec.begin(),mean_vec.end(),0);
+		//first deal with title
+		//for the same word there might be many version, we simply took its average
 
-			if(index==-1)	//don't put in it doesn't happen before
+		pt = now = num = 0;
+		printf("%d\n",num);
+		if(temp!="")
+		{
+			while(pt != string::npos)
 			{
+				fill(mean_temp.begin(),mean_temp.end(),0);
+
+				pt = temp.find(" ",now);	
+				this->find_average(temp.substr(now,pt-now),mean_temp);
+				
+				now = pt+1;
+				while(now<temp.size() && temp[now]==' ')
+					now++;			
+
+				for(i=0;i<mean_temp.size();i++)
+					if(mean_temp[i]!=0)
+						break;
+
+				if(i==mean_temp.size())
+					continue;
+				for(i=0;i<mean_temp.size();i++)
+					mean_vec[i] += mean_temp[i];
+				num ++;
 			}
-			else
-				qu.push_back(index);
-			now = pt+1;
 		}
-		this->query_in.push_back(qu);
-		if(range>0)
-			range--;
-		if(range==0)
-			break;
+		printf("%d\n",num);
+
+		//second deal with the track
+		getline(in,temp);
+		if(temp!="")
+		{
+			pt = now = 0;
+			while(pt != string::npos)
+			{
+				pt = temp.find(" ",now);
+
+				ans = temp.substr(now,pt-now);
+				index = this->query_int(ans);	
+				
+				now = pt+1;
+				while(now<temp.size() && temp[now]==' ')
+					now++;
+
+				if(index == -1)
+					continue;
+
+				class_set[count] = this->query_set(ans);
+
+				num++;
+				for(j=0 ; j< this->size ; j++)
+					mean_vec[j] += this->arr[index][j];
+			}	
+		}
+		printf("%d\n",num);
+
+		if(num!=0)
+			for(i=0;i<this->size;i++) 
+				mean_vec[j] /= num;
+
+		this->mean_vector.push_back(mean_vec);
+		count ++;
+		printf("%d\n",count);
+		getline(in,temp);
 	}
 
-	int ss=query_in.size()/this->thread_num;
+	int ss = this->mean_vector.size()/this->thread_num;
+
 	pthread_t thread[this->thread_num];
 	pair<mapping*,int> parm[this->thread_num];
 	void *res;
@@ -123,17 +265,17 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 		this->pt[i].second =(i+1)*ss;
 
 		if( i == (this->thread_num-1))
-			this->pt[i].second = query_in.size();
+			this->pt[i].second = this->mean_vector.size();
 
 		thread[i] = i;
 
 		parm[i].first = this;
 		parm[i].second = i;
 
-		rc = pthread_create(&thread[i],NULL,mapping::find,(void*)&parm[i]);
+		pthread_create(&thread[i],NULL,mapping::find,(void*)&parm[i]);
 	}
 	for(int i=0;i<this->thread_num;i++)
-		rc = pthread_join(thread[i],&res);
+		pthread_join(thread[i],&res);
 }
 
 void* mapping::find(void *parm)
@@ -141,246 +283,111 @@ void* mapping::find(void *parm)
 	pair<mapping*,int> *temp = (pair<mapping*,int>*) parm;
 	string url;
 
-	double one,all;
+	double one;
 
 	temp_prior h; 
-	int i,j,k,l,ss,index;
-	char file[128]="ans";
-	sprintf(file,"/mnt/data/recsys_spotify/line_data/ans_helf_%d_[%d_%d].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
+	long long i,j;
+	int k;
 
-	ofstream ofs(file);
+	char file[128];
+	sprintf(file,"/mnt/data/recsys_spotify/line_data/qans_challenge_%d_[%lld_%lld].out",temp->first->size,temp->first->pt[temp->second].first,temp->first->pt[temp->second].second);
+	FILE *out_file = fopen(file,"w");
 
-	//vector< priority_queue< temp_prior > > tt(temp->first->pt[temp->second].second-temp->first->pt[temp->second].first,priority_queue<temp_prior>());
 	priority_queue< temp_prior >tt;
 	vector< temp_prior > rever;
+	vector<string> left;
+	queue<int> ans;
 
 	for(i=temp->first->pt[temp->second].first ; i<temp->first->pt[temp->second].second ; i++)
 	{
-		while(!tt.empty())
-			tt.pop();
-		for(j=0 ; j<temp->first->arr.size() ; j++)
+		for(j=0;j<temp->first->size ; j++)
+			if(temp->first->mean_vector[i][j] != 0)
+				break;
+
+		if(j==temp->first->size)
 		{
-			url = temp->first->query_url(j);
-			if(url.find("spotify:track:") == std::string::npos)	//this is the title
-				continue;
-
-			all=0;
-			for(l=0;l<temp->first->query_in[i].size();l++)
-			{
-				one = 0;
-				for(k=0 ; k< temp->first->size/2 ; k++)
-				{
-					one += (temp->first->arr[j][k] - temp->first->arr[temp->first->query_in[i][l]][k]) * (temp->first->arr[j][k] - temp->first->arr[temp->first->query_in[i][l]][k]);
-				}
-			}
-			all += sqrt(one);
-			
-			h.node = j;
-			h.value = all;
-			tt.push(h);
-			if(tt.size()>500)
-				tt.pop();
-		}
-		
-		rever.clear();
-		for( j=0 ; j<500 ; j++)
-		{
-			h = tt.top();
-			tt.pop();
-			rever.push_back(h);
-		}
-		
-		for( j=499 ; j>=0 ; j--)
-			ofs<<rever[j].value<<","<<rever[j].node<<" ";
-		ofs<<endl;
-	}
-	ofs.close();
-}
-void mapping::checking(int num,char* test_file,char* ans_file)
-{
-	int now=0,ss=num/this->thread_num,rc;
-	
-	ifstream in(test_file); 
-	string temp;
-	vector<string> quer[this->thread_num];
-	for(int i=0;i<num;i++)
-	{
-		getline(in,temp);
-		quer[i/ss].push_back(temp);
-	}
-	in.close();
-
-	in.open(ans_file);
-	vector<string> answ[this->thread_num];
-	for(int i=0;i<num;i++)
-	{
-		getline(in,temp);	
-		answ[i/ss].push_back(temp);
-	}
-
-	pthread_t thread[this->thread_num];
-	temp_type parm[this->thread_num];
-	void *res;
-
-	for(int i=0;i<this->thread_num;i++)
-	{
-		thread[i] = i;
-
-		parm[i].a = &quer[i];
-		parm[i].b = &answ[i];
-		parm[i].index = i;
-		parm[i].re = this;
-
-		rc = pthread_create(&thread[i],NULL,mapping::che,(void*)&parm[i]);
-	}
-	for(int i=0;i<this->thread_num;i++)
-		rc = pthread_join(thread[i],&res);
-}
-
-void* mapping::che(void *parm)
-{
-	temp_type *temp = (temp_type*) parm;
-
-	vector<string> *quer = temp->a;
-	vector<string> *answ = temp->b;
-
-	mapping* re = temp->re;
-
-	int num,zero_count,number;
-	size_t sz,en;
-	double error_ndcg=0,error_r=0,normal=0,pre;
-	
-	double correct_ndcg,correct_r;
-	double correct_ndcg_max,correct_r_max;
-	double correct_ndcg_min,correct_r_min;
-	double correct_ndcg_avg,correct_r_avg;
-
-
-	char file[128]="ans";
-	sprintf(file,"./error_%d.out",temp->index);
-	
-	ofstream ofs(file);
-	
-	string url;
-	vector<int> test;
-
-	bool key,on;
-	int cc;
-	
-	correct_r_max = correct_ndcg_max = 0;
-	correct_r_min = correct_ndcg_min = 0;
-	correct_r_avg = correct_ndcg_avg = 0;
-
-	string arr;
-	zero_count = 0;
-	for(int i=0;i<quer->size();i++)
-	{
-		cout<<"i:"<<i<<" ";
-		test.clear();
-
-		number = stoi(answ->at(i),nullptr);
-
-		sz = answ->at(i).find(" ");
-		for(int j=0;j<number;j++)
-		{
-			en = answ->at(i).substr(sz+1).find(" ");
-			test.push_back( temp->re->query_int(answ->at(i).substr(sz+1,en)) );
-			cout<<"test:"<<test[j]<<endl;
-			sz += en+1;
-		}
-
-		sz = en = 0;
-		correct_r = correct_ndcg = normal = 0;
-
-		if(number==0)
-		{
-			ofs<<correct_r<<" "<<correct_ndcg<<endl;
-			continue;
-		}
-		arr = quer->at(i);
-		
-		on = false;
-		
-		cc=0;
-		for(int j=0;j<500;j++)
-		{
-			printf("j:%d\n",j);
-			key  = false;
-			pre = stod(arr.substr(sz),&en);
-			sz += en+1;
-			num = stoi(arr.substr(sz),&en);
-			sz += en+1;
-			
-			//	cout<<"j:"<<pre<<endl;
-		
-			for(int k=0 ; k<test.size() ; k++)
-				if(num == test[k])
-				{
-					key = true;
-					break;
-				}
-				
-			if(key)
-			{
-				if(cc==0)
-					normal +=1;
-				else if(cc<number )
-					normal += 1/log(cc+1);
-				cc++;
-				
-				on = true;
-				if(j<number)
-					correct_r += 1;
-				
-				if(j==0)
-					correct_ndcg += 1;
-				else
-					correct_ndcg += 1/log(j+1);
-			}
-		}
-		if(on==false)
-			normal += 1;
-
-		correct_r /= number;
-		correct_ndcg /= normal;
-	
-		ofs<<correct_r<<" "<<correct_ndcg<<endl;
-
-		if(i==0)
-		{
-			correct_r_max = correct_r_min = correct_r;
-			correct_ndcg_max = correct_ndcg_min = correct_ndcg;
+			///out_put first 500 pop
+			for( j=0 ; j<500 ; j++)
+				fprintf(out_file,"%s ",temp->first->pop_song[j].c_str());
+			fprintf(out_file,"\n");
 		}
 		else
 		{
-			if(correct_r_max < correct_r)
-				correct_r_max = correct_r;
-			if(correct_ndcg_max < correct_ndcg)
-				correct_ndcg_max = correct_ndcg;
+			while(!tt.empty())
+				tt.pop();
+			for(j=0 ; j<temp->first->arr.size() ; j++)
+			{
+				url = temp->first->query_url(j);
+				if(url.find("spotify:track:") == std::string::npos)	//this is the title
+					continue;
+
+				one = 0;
+				for(k=0 ; k< temp->first->size ; k++)
+					one += (temp->first->mean_vector[i][k] - temp->first->arr[j][k])*(temp->first->mean_vector[i][k] - temp->first->arr[j][k]);
+
+				h.node = j;
+				h.value = one;
+
+				tt.push(h);
+				if(tt.size()>1000)
+					tt.pop();
+
+			}
+
+			rever.clear();
+			for( j=0 ; j<1000 ; j++)
+			{
+				h = tt.top();
+				tt.pop();
+				rever.push_back(h);
+			}
 			
-			if(correct_r_min > correct_r)
-				correct_r_min = correct_r;
-			if(correct_ndcg_min > correct_ndcg)
-				correct_ndcg_min = correct_ndcg;
+			//use the set group result to double fine check the output
+			left.clear();
+			k=500;
+			for( j=999 ; j>=0 ; j--)
+			{
+				url = temp->first->query_url(rever[j].node);
+				if( temp->first->query_set(url) == temp->first->class_set[i] )
+				{
+					fprintf(out_file,"%s ",url.c_str());
+					k--;
+				}		
+				else
+					left.push_back(url);
+			}	
+			for(j=0;j<k;j++)
+				fprintf(out_file,"%s ",left[j].c_str());
+
+			fprintf(out_file,"\n");
 		}
-	
-		correct_r_avg += correct_r;
-		correct_ndcg_avg += correct_ndcg;
-
-		if(on ==false)
-			zero_count++;
 	}
+	fclose(out_file);
+	return 0;
+}
 
-	correct_r_avg /= quer->size();
-	correct_ndcg_avg /= quer->size();
-	ofs<<"---------------------------------------------\n";
-	cout<<"---------------------------------------------\n";
-	ofs<<"max:"<<temp->index<<" "<<correct_r_max<<" "<<correct_ndcg_max<<endl;
-	//cout<<"max:"<<correct_r_max<<" "<<correct_ndcg_max<<endl;
-	ofs<<"min:"<<correct_r_min<<" "<<correct_ndcg_min<<endl;
-	//cout<<"min:"<<correct_r_min<<" "<<correct_ndcg_min<<endl;
-	ofs<<"avg:"<<correct_r_avg<<" "<<correct_ndcg_avg<<endl;
-	ofs<<"zero"<<zero_count<<endl;
-	//cout<<"avg:"<<correct_r_avg<<" "<<correct_ndcg_avg<<endl;
-	ofs.close();
+void mapping::find_average(string title,vector<double> &mean_temp)
+{
+	//in this part we query every version of the word and find for its average
+	string title_temp;
+	int i,j,index;
+	cout<<title<<"-"<<endl;
+
+
+	for(i=0 ; ;i++)
+	{
+		title_temp = title + " " + to_string(i);
+		index = this->query_int(title_temp);
+
+		if(index == -1)
+			break;
+
+		for(j=0;j<this->size;j++)
+			mean_temp[j] += this->arr[index][j];
+	}
+	if(i == 0)
+		return ;
+
+	for(j=0 ; j<this->size ; j++)
+		mean_temp[j] /= i;
 }

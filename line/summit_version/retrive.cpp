@@ -7,7 +7,9 @@ mapping::mapping()
 }
 mapping::mapping(const char *file_name,const char *file,int size)
 {
+
 	//open the file here and make it into file
+	
 	this->size = size;
 	string key_word;
 
@@ -27,7 +29,6 @@ mapping::mapping(const char *file_name,const char *file,int size)
 	{
 		//cout<<index<<endl;
 		index = temp.rfind(' ');
-				
 		num = atoi(&temp.c_str()[index+1]);	
 	    temp.erase(temp.begin()+index,temp.end());
 
@@ -36,10 +37,12 @@ mapping::mapping(const char *file_name,const char *file,int size)
 		//check if it is title or track
 
 
-		if(temp.find("spotify:track:"))
+		if(temp.find("spotify:track:")!=string::npos)
 		{
 			if( dic.find(temp) == dic.end() )
+			{
 				dic[temp].first = num;
+			}
 			else
 				cout<<"it seems to be some error\n";	
 		}
@@ -96,9 +99,9 @@ mapping::mapping(const char *file_name,const char *file,int size)
 	in.open("/mnt/data/recsys_spotify/line_data/song_information/set");
 	while(getline(in,temp))
 	{
+		now = pt = 0;
 		while(1)
 		{
-			now = pt = 0;
 			pt = temp.find(' ',now);
 			dic[temp.substr(now,pt-now)].second = count;
 			if(pt == string::npos)
@@ -173,7 +176,7 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 	ifstream in(in_file); 
 	string temp,ans;
 	vector<int> qu;
-	vector<double> mean_vec(this->size,0),mean_temp;
+	vector<double> mean_vec(this->size,0),mean_temp(this->size,0);
 
 
 	this->mean_vector.clear();
@@ -197,6 +200,7 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 
 				pt = temp.find(" ",now);	
 				this->find_average(temp.substr(now,pt-now),mean_temp);
+				cout<<"3 "<<temp.substr(now,pt-now)<<"-"<<endl;
 				
 				now = pt+1;
 				while(now<temp.size() && temp[now]==' ')
@@ -226,6 +230,7 @@ void mapping::goal(char* in_file,int range=-1)	//input the query file here
 
 				ans = temp.substr(now,pt-now);
 				index = this->query_int(ans);	
+				cout<<"4 "<<ans<<"-"<<endl;
 				
 				now = pt+1;
 				while(now<temp.size() && temp[now]==' ')
