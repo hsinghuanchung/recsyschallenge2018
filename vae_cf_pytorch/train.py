@@ -14,7 +14,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 def main(args):
     print('qq')
 
-    learning_rate = 0.001
     
     n_items = 220915
     p_dims = [300, 800, n_items]
@@ -40,7 +39,7 @@ def main(args):
 
     vae = vae.cuda()
     print(vae)    
-    optimizer = torch.optim.Adam(vae.parameters(),lr = learning_rate)
+    optimizer = torch.optim.Adam(vae.parameters(),lr = args.lr)
 
     total_anneal_steps = 200000
     anneal_cap = 0.2
@@ -64,8 +63,12 @@ def main(args):
                 anneal = anneal_cap
 
             loss = vae.loss_function(output,sample['total'],mean,var,anneal)
-        
-            train_loss += loss
+"""    
+            l2_reg = torch.tensor(0.)
+            for param in vae.parameters():
+                l2_reg += torch.norm(param)
+ """
+            train_loss += loss 
 
             vae.zero_grad()
             loss.backward()
@@ -118,6 +121,7 @@ if(__name__ == '__main__'):
     parser.add_argument('--batchSize', type=int, default=8, help='input batch size')
     parser.add_argument('--num_threads', type=int, default=8, help='# threads for loading data')
     parser.add_argument('--loadData', type=str, default="./data/pre_pytorch/", help='place to load data')
+    parser.add_argument('--lr', type=float, default="0.001", help='learning for the optimizer')
     
     parser.add_argument('--loadModel', type=str, default="", help='place to load model')
     parser.add_argument('--saveModel', type=str, default="./checkpoint/", help='place to save model')
