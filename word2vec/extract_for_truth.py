@@ -2,8 +2,10 @@
 """
 
     Usage:
-        python extract_uri_for_five_input.py [output file name]                             [range]
-        python extract_uri_for_five_input.py ../../word2vec/trunk/five_input_800000_1000000 800000-1000000
+        python extract_uri_for_truth.py [output file name]                           [range]
+        python extract_uri_for_truth.py ../../word2vec/trunk/truth_uri_800000_800002 800000-800002
+        python extract_uri_for_truth.py truth_uri_800000_804000_task7 800000-804000  
+        python extract_uri_for_truth.py truth_uri_800000_804000_task9 800000-804000 
         
 
 """
@@ -18,24 +20,22 @@ name_url = set()
 cache = {}
 output_file_name = []
 
-gc = 0#gc just for debug
-
 def get_playlist_name_url(playlist):
     ff = codecs.open(output_file_name,'a','utf-8') 
+    #ff.write(str(playlist['pid']))
+    #ff.write(" ")
+    
+    if playlist['num_tracks'] > 25:
 
-    global gc
-    #print str(playlist['pid'])
-
-    a = 0
-    for track in playlist['tracks']:
-        if a == 5:
-            break
-        tmp_uri = track['track_uri'].split(':')
-        ff.write(tmp_uri[2])
+        ff.write(str(playlist['num_tracks']));
         ff.write(" ")
-        gc = gc + 1
-        a = a + 1
-        
+            
+        for track in playlist['tracks']:
+            tmp_uri = track['track_uri'].split(':')
+            ff.write(tmp_uri[2])
+            #ff.write(track['track_uri'])
+            ff.write(" ")
+
     ff.close()
    
 
@@ -44,8 +44,8 @@ def show_playlist(pid):
         low = 1000 * int(pid / 1000)
         high = low + 999
         offset = pid - low
-        #path = "../../../../mnt/data/recsys_spotify/data/mpd.slice." + str(low) + '-' + str(high) + ".json"
-        path = "../data/mpd.slice." + str(low) + '-' + str(high) + ".json"
+        #path = "../../mnt/data/recsys_spotify/data/mpd.slice." + str(low) + '-' + str(high) + ".json"
+        path = "../../mpd.v1/data/mpd.slice." + str(low) + '-' + str(high) + ".json"
         if not path in cache:
             f = codecs.open(path, 'r', 'utf-8')
             js = f.read()
@@ -55,6 +55,7 @@ def show_playlist(pid):
 
         playlist = cache[path]['playlists'][offset]
         get_playlist_name_url(playlist)
+
 
 def show_playlists_in_range(start, end):
     try:
@@ -82,12 +83,6 @@ if __name__ == '__main__':
         start = fields[0]
         end = fields[1]
         show_playlists_in_range(start, end)
-    
-    """print "======="
-    print gc
-    print start
-    print end """     
+        
     print "finish"
-
-
 

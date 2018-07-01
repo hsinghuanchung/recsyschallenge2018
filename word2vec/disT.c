@@ -1,10 +1,19 @@
 /*
 
-gcc dis_5.c -o dis_5
+gcc disT.c -o disT -lm
 
-./dis_5 vectors.bin [input file name]        [output file name]    [playlist num]   
-./dis_5 vectors.bin five_input_800000_800002 dis5_ans_800000_800002 2
-./dis_5 vectors2.bin five_input_800000_804000 dis5_ans_800000_804000 4000
+./disT vectors.bin   [input file name]                 [output file name]              [playlist num]   
+./disT ../vectors12.bin title_5input_800000_804000 dis5_title_800000_804000 4000
+./disT ../vectors13.bin title_5input_800000_804000 dis5_title_800000_804000_13 4000
+
+./disT ../vectors12.bin title_5input_800000_804000 dis5_title_800000_804000_a 4000
+
+
+./disT ../vectorsB.bin task3_input 1000_1999.csv 4000
+./disT ../vectorsB.bin task5_input 3000_3999.csv 4000
+./disT ../vectorsB.bin task2_input 9000_9999.csv 4000
+
+./disT ../vectorsB.bin task9_input_subtop3 7000_7999.csv 1000
 
 */
 
@@ -44,6 +53,7 @@ int main(int argc, char **argv) {
   FILE *f;
   FILE *f_test;
   FILE *f_for_acc;
+  FILE *f_top500;
   char st1[max_size];
   char *bestw[10][N];
   char file_name[max_size], st[510][max_size], file_name2[max_size], file_name3[max_size];
@@ -107,76 +117,74 @@ int main(int argc, char **argv) {
 
   strcpy(file_name3, argv[3]);//output file name
 
-  int input_num = 0, check = 0, error = 0, gc = 0;
+  int input_num = 0, check = 0, gc = 0, five_not_match = 0;
   char tmp_s[max_w];
 
   f_for_acc = fopen(file_name3, "w");
 
 
+  
+
+  char spid[7];
+  printf("into check loop\n");
   while (check < playlist_total) {
     for (a = 0; a < N; a++) bestd[input_num][a] = 0;
     for (a = 0; a < N; a++) bestw[input_num][a][0] = 0;
     //printf("Enter %d word: ", input_num+1);
     //printf("Enter word or sentence (EXIT to break): ");
 
+    fscanf(f_test, "%s", spid);
+
     a = 0;
-    fscanf(f_test, "%s", st[a]);
-    a++;
-    gc++;//gc is just for debug
     while(1){
-      if(gc % 5 == 0)
-        break;
       fscanf(f_test, "%s", st[a]);
+      if(strcmp(st[a], "NEXT") == 0){
+        break;
+      }
+      //printf("gc:%d, a:%lld\n", gc, a);
       a++;
       gc++;
     }
     
     cn = a;
 
-    /*while (1) {
-      //st1[a] = fgetc(f_test);
-
-      //fscanf(f_test, "%s", st1[a]);
-      st1[a] = fgetc(stdin);
-      //printf("%c\n", st1[a]);
-      if ((st1[a] == '\n') || (a >= max_size - 1)) {
-        st1[a] = 0;
-        //end_flag = 1;
-        break;
-      }
-      a++;
-    }
-    if (!strcmp(st1, "EXIT")) break;
-    cn = 0;
-    b = 0;
-    c = 0;
-    while (1) {
-      st[cn][b] = st1[c];
-      b++;
-      c++;
-      st[cn][b] = 0;
-      if (st1[c] == 0) break;
-      if (st1[c] == ' ') {
-        cn++;
-        b = 0;
-        c++;
-      }
-    }
-    cn++;*/
+    if(check % 100 == 0)
+      printf("check: %d\n", check);
+    check++;
 
     //count the position of the input word in the corpus
+    int five = 0;
     for (a = 0; a < cn; a++) {
       for (b = 0; b < words; b++) if (!strcmp(&vocab[b * max_w], st[a])) break;
       if (b == words) b = -1;
       bi[a] = b;
-      //printf("\nWord: %s  Position in vocabulary: %lld\n", st[a], bi[a]);
-      if (b == -1) {
-        //printf("Out of dictionary word!\n");
-        //break;
-      }
+      
+      if (b == -1)
+        five++;
     }
-    if (b == -1) continue;
-    //printf("\n                                         track_uri       Cosine distance\n------------------------------------------------------------------------\n");
+    if(five == cn){
+      fprintf(f_for_acc, "%s, ", spid);
+
+      char tmp500[50];
+      f_top500 = fopen("../top500track", "r");
+      if (f_top500 == NULL) {
+        printf("top500 file not found\n");
+        return -1;
+      }
+
+      printf("top500\n");
+
+      for(i = 0; i < 499; i++){
+        fscanf(f_top500, "%s", tmp500);
+        fprintf(f_for_acc, "spotify:track:%s, ", tmp500);
+      }
+      fscanf(f_top500, "%s", tmp500);
+      fprintf(f_for_acc, "spotify:track:%s\n", tmp500);
+      five_not_match++;
+      fclose(f_top500);
+      continue;
+    }
+
     for (a = 0; a < size; a++) vec[a] = 0;
     for (b = 0; b < cn; b++) {
       if (bi[b] == -1) continue;
@@ -188,9 +196,13 @@ int main(int argc, char **argv) {
     for (a = 0; a < size; a++) vec[a] /= len;
     for (a = 0; a < N; a++) bestd[input_num][a] = -1;
     for (a = 0; a < N; a++) bestw[input_num][a][0] = 0;
+    int tmp = 0;
     for (c = 0; c < words; c++) {
+      if(strlen(&vocab[c * max_w]) != 22)
+        continue;
+      tmp++;
       a = 0;  
-      for (b = 0; b < cn; b++) if (bi[b] == c) a = 1;
+      for (b = 0; b < cn; b++) if (bi[b] == c) a = 1;//the same word as input word
       if (a == 1) continue;
       dist = 0;
       for (a = 0; a < size; a++) dist += vec[a] * M[a + c * size];
@@ -206,81 +218,21 @@ int main(int argc, char **argv) {
         }
       }
     }
-    //for (a = 0; a < N; a++) printf("%50s\t\t%f\n", bestw[input_num][a], bestd[input_num][a]);
-    
+    fprintf(f_for_acc, "%s, ", spid);
     for(i = 0; i < N; i++){
-      //fprintf(f_for_acc, "%s ", aver[i].aword);
-      fprintf(f_for_acc, "%s ", bestw[input_num][i]);
-    }
-    //input_num++;
+      if(i == N - 1)
+        fprintf(f_for_acc, "spotify:track:%s\n", bestw[input_num][i]);
+      else
+        fprintf(f_for_acc, "spotify:track:%s, ", bestw[input_num][i]);
 
-    
-    //printf("check: %d\n", check);
-    check++;
-
-    if(error)
-      break;
-  }
-
-  
-  /*
-  //////This is used in my own way of calculating the weight of five distance//////
-  //calculate average weight for each uri
-  int j, count = 0;
-  for(i = 0; i < input_num; i++){
-    for(j = 0; j < N; j++){
-      if(i == 0){//bestw[0][j], copy directly
-        strcpy(aver[count].aword, bestw[i][j]);
-        aver[count].adist = bestd[i][j];
-        aver[count].cnt = 1;
-        count++;
-      }
-      else{
-        int k, flag = 0;
-        for(k = 0; k < count; k++){
-          if(strcmp(aver[k].aword, bestw[i][j]) == 0){
-            //printf("hiiiiiiiiiiiiiiiiii, i: %d, j: %d\n", i, j);  
-            aver[k].adist += bestd[i][j];
-            aver[k].cnt ++;
-            flag = 1;
-            break;
-          }
-        }
-        if(flag == 0){//not found, create one
-          strcpy(aver[count].aword, bestw[i][j]);
-          aver[count].adist = bestd[i][j];
-          aver[count].cnt = 1;
-          count++;
-        }
-      }
     }
   }
-  //calculate final average distance
-  int total_weight = N * input_num;
-  for(i = 0; i < count; i++){
-    aver[i].final_dist = (aver[i].adist / aver[i].cnt);//simple, have to be modified
-    //aver[i].final_dist = (aver[i].adist / total_weight);
-  }
 
-  //sort by final_dist
-  qsort(aver, count, sizeof(aver[0]), cmpfunc);
-
-  //print final output
-  printf("count: %d\n", count);
-  for(i = 0; i < count; i++)
-    printf("%s, %f, %f\n", aver[i].aword, aver[i].final_dist, aver[i].cnt);
-  
-  printf("\nFinal cosine distance:\nTotal weight: %d\n", total_weight);
-  printf("\n                                         track_uri         Simple weight\n------------------------------------------------------------------------\n");
-  for (i = 0; i < 10; i++) 
-    printf("%50s\t\t%f\n", aver[i].aword, aver[i].final_dist);
-  */
-
-  //printf("next_cnt: %d\n", next_cnt);
-  //printf("finish, gc:%d\n", gc);
-
+  printf("finish, gc:%d\n", gc);
+  printf("five_not_match: %d\n", five_not_match);
   fclose(f_test);
   fclose(f_for_acc);
+  
   return 0;
 }
  

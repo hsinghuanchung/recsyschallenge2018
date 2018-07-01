@@ -13,6 +13,7 @@ import codecs
 import datetime
 import re
 
+cnt = 0
 cache = {}
 output_file_name = []
 
@@ -23,13 +24,13 @@ def normalize_name(name):
     return name
 
 def get_playlist_name_url(playlist):
+    global cnt
+
     ff = codecs.open(output_file_name,'a','utf-8') 
 
-    #lower_name = playlist['name'].lower()
     nname = normalize_name(playlist['name'])
     ff.write(nname)
     ff.write(" ")
-
     a = 0
     for track in playlist['tracks']:
         tmp_uri = track['track_uri'].split(':')
@@ -43,6 +44,30 @@ def get_playlist_name_url(playlist):
 
     ff.write(nname)
     ff.write(" ")
+
+    followers = int(playlist['num_followers'])
+
+    if followers > 25:
+        cnt = cnt + 1
+        nname = normalize_name(playlist['name'])
+        ff.write(nname)
+        ff.write(" ")
+
+        a = 0
+        for track in playlist['tracks']:
+            tmp_uri = track['track_uri'].split(':')
+            a = a + 1
+            if a == 3:
+                ff.write(nname)
+                ff.write(" ")
+                a = 1
+            ff.write(tmp_uri[2])
+            ff.write(" ")
+
+        ff.write(nname)
+        ff.write(" ")
+
+    
     ff.close()
    
 
@@ -59,6 +84,9 @@ def show_playlist(pid):
             f.close()
             playlist = json.loads(js)
             cache[path] = playlist
+
+        if pid % 1000 == 0:
+            print pid
 
         playlist = cache[path]['playlists'][offset]
         get_playlist_name_url(playlist)
@@ -83,4 +111,5 @@ if __name__ == '__main__':
         end = fields[1]
         show_playlists_in_range(start, end)
         
+    print cnt
     print "finish"
