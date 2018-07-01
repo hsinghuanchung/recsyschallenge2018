@@ -10,7 +10,7 @@ class itemDataset(Dataset):
         
         for line in self.file:
             line = line.strip().split()
-            if(len(line)==25):
+            if(len(line)==100):
                 continue
             arr = []
             for data in line:

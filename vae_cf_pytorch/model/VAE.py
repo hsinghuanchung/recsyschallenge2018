@@ -14,12 +14,18 @@ class VAE(nn.Module):
 
         self.test1 = nn.Linear(p_dims[0],p_dims[1],bias=True)
         self.test2 = nn.Linear(p_dims[1],p_dims[2],bias=True)
+        """ 
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform(m.weight, gain=nn.init.calculate_gain('tanh'))
+                nn.init.xavier_uniform(m.bias, gain=nn.init.calculate_gain('tanh'))
+        """
     def encode(self,x):
         out = F.tanh(self.enlayer1(x))
         self.mean = self.enlayer_out1(out)
         self.var = self.enlayer_out2(out)
         return self.mean,self.var
-
+    
     def reparametric(self):
         if(self.training == True):
             std = torch.exp(0.5*self.var)

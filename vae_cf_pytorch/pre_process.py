@@ -1,8 +1,8 @@
 import numpy as np
-f = open('/mnt/data/recsys_spotify/vae/training_data25','r')
+f = open('./data/training_data100','r')
 
-f_training = open('./data/pre_pytorch/training_data25','w')
-f_vailding = open('./data/pre_pytorch/vailding_data25','w')
+f_training = open('./data/pre_pytorch/training_data100','w')
+f_vailding = open('./data/pre_pytorch/vailding_data100','w')
 
 data = f.readlines()
 print(len(data))

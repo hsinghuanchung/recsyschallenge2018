@@ -3,14 +3,15 @@ import numpy as np
 import torch
 
 
-class testDataset(Dataset):
+class itemDataset(Dataset):
     def __init__(self, file_name,transform=None):
         self.file = open(file_name,'r')
         self.user_data =[]
         
         for line in self.file:
             line = line.strip().split()
-            
+            if(len(line)==100):
+                continue
             arr = []
             for data in line:
                 arr.append(int(data))
@@ -38,15 +39,22 @@ class Sample(object):
         np.random.seed(98765)
         
     def __call__(self,sample):
-        seed_arr = []
-        for data in sample[1:]:
-            if(data==-1):
-                continue
-            seed_arr.append(data)
-
-        seed_np = self.convert_data(seed_arr)
+        seed_arr,ans_arr=[],[]
         
-        return {'seed': seed_np,'pid':np.array(sample[0])}
+        n_items_u = len(sample)
+		
+        for index in range(len(sample)):
+            if(sample[index]==-1):
+                continue
+            
+            if(index < self.output_size):
+                seed_arr.append(sample[index])
+            ans_arr.append(sample[index])
+        
+        seed_np = self.convert_data(seed_arr)
+        ans_np = self.convert_data(ans_arr)
+        
+        return {'seed': seed_np , 'total': ans_np,'length': np.array([n_items_u])}
 
     def convert_data(self,arr):
         data = np.zeros([self.n_items],dtype='float32')
@@ -58,4 +66,5 @@ class ToTensor(object):
     def __call__(self,sample):
         return{
             'seed':torch.from_numpy(sample['seed']),
-			'pid':sample['pid']}
+            'total':torch.from_numpy(sample['total']),
+            'length':torch.from_numpy(sample['length'])}
